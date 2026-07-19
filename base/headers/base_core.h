@@ -3,10 +3,9 @@
 
 *  The code in this file is seperated into the following
 
-1. Freestanding header includes.
-2. Compiler versioning delegation.
-3. OS and CPU architecture delegation.
- */
+*  1. Freestanding header includes.
+*  2. Compiler versioning delegation.
+*  3. OS and CPU architecture delegation.                */
 
 #ifndef SEROS_BASE_CORE
 #define SEROS_BASE_CORE
@@ -133,6 +132,8 @@ union U256 {
 #define asm __asm__
 #define volatile __volatile__
 
+#define private static
+
 #if STD_C23
 #       define NIL nullptr
 #else
@@ -166,19 +167,6 @@ union U256 {
 #define TB(n) (((U64)(n))<<40)
 
 /**........................................................
-// Debugging utilities                                   */
-
-#ifndef DEBUG
-#       define DEBUG 0
-#endif
-
-#if DEBUG
-#       define DBG_Invalidate(a) (a) = ((U0*)-1)
-#else
-#       define DBG_Invalidate(a) ((U0*)(a))
-#endif
-
-/**........................................................
 // Asserts and Typechecking                              
 
 * When using HintAssert, compile with -fsanitize=undefined
@@ -197,13 +185,21 @@ union U256 {
 * https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html */
 
 #ifndef ASSERT_ALL
-#       define ASSERT_ALL 1
+#       define ASSERT_ALL     1
 #endif
+
 #if ASSERT_ALL
+#  ifndef COMPILE_ASSERT
 #       define COMPILE_ASSERT 1
+#  endif
+#  ifndef RUNTIME_ASSERT
 #       define RUNTIME_ASSERT 1
+#  endif
+#  ifndef HINT_ASSERT
 #       define HINT_ASSERT    1
+#  endif
 #endif
+
 #ifndef COMPILE_ASSERT
 #       define COMPILE_ASSERT 0
 #endif
@@ -211,7 +207,7 @@ union U256 {
 #       define RUNTIME_ASSERT 0
 #endif
 #ifndef HINT_ASSERT
-#       define HINT_ASSERT 0
+#       define HINT_ASSERT    0
 #endif
 
 #if COMPILE_ASSERT
@@ -228,7 +224,7 @@ union U256 {
 #  if GNU_COMPILER || CLANG_COMPILER
 #       define RuntimeAssert(c) do { if (!(c)) __builtin_trap(); } while(0)
 #  elif MSVC_COMPILER
-#       define RuntimeAssert(c) do { if (!(c)) __debugbreak(); } while(0)
+#       define RuntimeAssert(c) do { if (!(c)) __debugbreak();   } while(0)
 #  else 
 #       define RuntimeAssert(c) ((U0)(c))
 #  endif
@@ -246,6 +242,27 @@ union U256 {
 #  endif
 #else
 #       define HintAssert(c) ((U0)(c))
+#endif
+
+/**........................................................
+// Debugging utilities                                   */
+
+#ifndef DEBUG
+#       define DEBUG 0
+#endif
+
+#if DEBUG
+#  if GNU_COMPILER || CLANG_COMPILER
+#       define DBG_Invalidate(a, n) ({                                                           \
+               CompileAssert(__builtin_types_compatible_p(TypeOf(S32), TypeOf(n)),               \
+                             "DBG_Invalidate: n must be an integer.");                           \
+               do { (a) = ((U0*)-n); } while(0)                                                  \
+        })
+#  else
+#       define DBG_Invalidate(a, n) (a) = ((U0*)-n)
+#  endif
+#else
+#       define DBG_Invalidate(a, n) (a) = ((U0*)(a))
 #endif
 
 /**........................................................

@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 /**........................................................
-// Freestanding header includes.                         */
+// Freestanding/standalone header includes.              */
 
 #include <stdint.h>
 #include <stddef.h>
@@ -31,8 +31,8 @@ extern "C" {
 #       define MSVC_COMPILER  1
 #endif
 
-#if defined(__STDC__)
-#  if !defined(__STDC_VERSION__)
+#ifdef __STDC__
+#  ifndef __STDC_VERSION__
 #       define STD_C89 1
 #  endif
 #  if __STDC_VERSION__ >= 199409L
@@ -53,11 +53,12 @@ extern "C" {
 #  if __STDC_VERSION__ >  202311L
 #       define STD_C2Y 1
 #  endif
-#endif
+#endif /* __STDC__ */
 
 /**........................................................
 // OS and CPU architecture delegation.                   */
 
+/* Windows, Linux and Mac */
 #if defined(_WIN32)
 #       define OS_WINDOWS 1
 #elif defined(__gnu_linux__) || defined(__linux__)
@@ -66,22 +67,35 @@ extern "C" {
 #       define OS_MAC     1
 #endif
 
-#if defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64)
+/* x86 and x86-64 */
+#if defined(__amd64__) || defined(__amd64)
 #       define ARCH_X64   1
-#elif defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
+#elif defined(__x86_64__) || defined(__x86_64)
+#       define ARCH_X64   1
+#elif defined(i386)   || defined(__i386__)
 #       define ARCH_X86   1
-#elif defined(__aarch64__)
+#elif defined(__i386) || defined(_M_IX86)
+#       define ARCH_X86   1
+#endif
+
+/* AARCH64 and ARM32 */
+#if defined(__aarch64__)
 #       define ARCH_ARM64 1
 #elif defined(__arm__)
 #       define ARCH_ARM32 1
-#elif defined(__riscv__)
+#endif
+        
+#if defined(__riscv__)
 #       define ARCH_RISCV 1
 #elif defined(__mips__)
 #       define ARCH_MIPS  1
 #endif
 
-#define ARCH_64BIT
-#define ARCH_32BIT
+#if ARCH_X64 || ARCH_ARM64
+#       define ARCH_64BIT 1
+#elif ARCH_X86 || ARCH_ARM64
+#       define ARCH_32BIT 1
+#endif
 
 /**........................................................
 // Base types                                            */
@@ -96,6 +110,7 @@ typedef int8_t    I8;
 typedef int16_t   I16;
 typedef int32_t   I32;
 typedef int64_t   I64;
+typedef intptr_t  Iptr;
 typedef U8        B8;
 typedef U16       B16;
 typedef U32       B32;
@@ -136,27 +151,27 @@ union U256 {
 
 #if STD_C23
 #       define NIL nullptr
-#else
+#else          /* !STD_C23 */
 #       define NIL ((U0*)0)
-#endif
+#endif 
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define always_inline inline __attribute__((__always_inline__))
-#else
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define always_inline inline
-#endif
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define TypeOf(t) __typeof__(t)
 #elif STD_C23
 #       define TypeOf(t) typeof(t)
-#endif
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
 #ifndef offsetof
 #       define OffsetOf(T, m) ((U64) &((T*)0)->m)
-#else
+#else          /* defined(offsetof) */
 #       define OffsetOf(T, m) offsetof(T, m)
-#endif
+#endif         /* !offsetof */
 
 /**........................................................
 // Units                                                 */
@@ -213,66 +228,99 @@ union U256 {
 #if COMPILE_ASSERT
 #  if STD_C11 || GNU_COMPILER || CLANG_COMPILER
 #       define CompileAssert(...) _Static_assert(__VA_ARGS__)
-#  else
+#  else        /* !(STD_C11 || GNU_COMPILER || CLANG_COMPILER) */
 #       define CompileAssert(...) ((U0)(__VA_ARGS__))
-#  endif
-#else
+#  endif       /* STD_C11 || GNU_COMPILER || CLANG_COMPILER    */
+#else          /* !COMPILE_ASSERT */
 #       define CompileAssert(...) ((U0)(__VA_ARGS__))
-#endif
+#endif         /*  COMPILE_ASSERT */
 
 #if RUNTIME_ASSERT
 #  if GNU_COMPILER || CLANG_COMPILER
 #       define RuntimeAssert(c) do { if (!(c)) __builtin_trap(); } while(0)
 #  elif MSVC_COMPILER
 #       define RuntimeAssert(c) do { if (!(c)) __debugbreak();   } while(0)
-#  else 
+#  else        /* !(GNU_COMPILER || CLANG_COMPILER) && MSVC_COMPLIER */
 #       define RuntimeAssert(c) ((U0)(c))
-#  endif
-#else 
+#  endif       /*   GNU_COMPILER || CLANG_COMPILER && MSVC_COMPLIER  */
+#else          /* !RUNTIME_ASSERT */
 #       define RuntimeAssert(c) ((U0)(c))
-#endif
+#endif         /*  RUNTIME_ASSERT */
 
 #if HINT_ASSERT
 #  if GNU_COMPILER || CLANG_COMPILER
 #       define HintAssert(c) while (!(c)) __builtin_unreachable()
 #  elif MSVC_COMPILER
 #       define HintAssert(c) while (!(c)) __assume(0)
-#  else 
+#  else        /* !(GNU_COMPILER || CLANG_COMPILER) && MSVC_COMPLIER */
 #       define HintAssert(c) ((U0)(c))
-#  endif
-#else
+#  endif       /* GNU_COMPILER || CLANG_COMPILER */
+#else          /* !HINT_ASSERT */
 #       define HintAssert(c) ((U0)(c))
-#endif
+#endif         /*  HINT_ASSERT */
 
 /**........................................................
-// Debugging utilities                                   */
+// Debugging, poisoning and address sanitizer utilities  */
+
+typedef enum PoisonPtrTrait PoisonPtrTrait;
+enum PoisonPtrTrait {
+
+};
 
 #ifndef DEBUG
 #       define DEBUG 0
-#endif
+#endif         /* !DEBUG */
 
-#if DEBUG
-#  if GNU_COMPILER || CLANG_COMPILER
-#       define DBG_Invalidate(a, n) ({                                                           \
-               CompileAssert(__builtin_types_compatible_p(TypeOf(S32), TypeOf(n)),               \
-                             "DBG_Invalidate: n must be an integer.");                           \
-               do { (a) = ((U0*)-n); } while(0)                                                  \
-        })
-#  else
-#       define DBG_Invalidate(a, n) (a) = ((U0*)-n)
-#  endif
-#else
-#       define DBG_Invalidate(a, n) (a) = ((U0*)(a))
+#ifndef DIAGNOSIC
+#       define DIAGNOSTIC 1
+#endif         /* !DIAGNOSTIC */
+
+#ifndef TRACE
+#define TRACE 1
 #endif
+        
+#if GNU_COMPILER || CLANG_COMPILER
+#  if defined(__has_feature)
+#    if __has_feature(address_sanitizer)
+#       define ASAN_ENABLED 1
+#    endif     /* __has_feature(address_sanitizer) */
+#  endif       /* defined(__has_feature) */
+
+#  elif defined(__SANITIZE_ADDRESS__)
+#       define ASAN_ENABLED 1
+#  endif       /* defined(__SANITIZE_ADDRESS__) */
+#endif         /* GNU_COMPILER || CLANG_COMPILER */
+
+#if GNU_COMPILER || CLANG_COMPILER
+#       define PtrInvalidate(a, n) ({                                                            \
+               CompileAssert(__builtin_classify_type(a) == __builtin_classify_type((U0*)0) &&    \
+                             __builtin_classify_type(n) == __builtin_classify_type((S32)0)       \
+                             "PtrInvalidate: a must be a ptr and n must be an integer.");        \
+               do { (a) = ((U0*)-n); } while(0);                                                 \
+        })
+#       define PtrIsInvalidated(a, n) ((x) == (U0*)(Iptr)-n)
+#elif
+#       define PtrInvalidate(a, n) do { (a) = ((U0*)-n); } while(0)
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
+#       define PtrInvalidate(a, n) (((U0)(a) = (a)), (U0)(n))
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+
+#if DEBUG && ASAN_ENABLED
+#       define DBG_PoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
+#       define DBG_UnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
+#else          /* !(DEBUG && ASAN_ENABLED) */
+#       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
+#       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
+#endif         /*  DEBUG && ASAN_ENABLED   */
 
 /**........................................................
 // Branch prediction macros                              */
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define Expect(e, v) __builtin_expect((e), (v))
-#else
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define Expect(e, v) (e)
-#endif
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
 #define Likely(e)   Expect((e), 1)
 #define Unlikely(e) Expect((e), 0)
@@ -286,9 +334,9 @@ union U256 {
                              "CountOf: argument must be a real array and not a pointer.");       \
                (S32) (sizeof(x)/sizeof((x)[0]));                                                 \
         })
-#else
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define CountOf(x) ((S32)(sizeof(x) / sizeof((x)[0])))
-#endif
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
 #define LengthOf(x) (CountOf(x)-1)
 
@@ -302,9 +350,9 @@ union U256 {
                              "CastFromMember: ptr type does not match member type.");            \
                (T*) ((S8*) (ptr)-OffsetOf(T,m));                                                 \
         })
-#else
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define CastFromMember(T, m, ptr) (T*) ((S8*) (ptr)-OffsetOf(T,m))
-#endif
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
 #ifdef __cplusplus
 }

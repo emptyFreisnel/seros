@@ -1,5 +1,5 @@
 /**........................................................
-// C core utilites and basic types.                      
+// C core utilities.
 
 *  The code in this file is seperated into the following
 
@@ -17,8 +17,8 @@ extern "C" {
 /**........................................................
 // Freestanding/standalone header includes.              */
 
-#include <stdint.h>
-#include <stddef.h>
+#include <stdarg.h>  /* For va_args/va_list */
+#include <stdint.h>  /* For fixed width types eg int32_t */
 
 /**........................................................
 // Compiler versioning delegation.                       */
@@ -58,7 +58,6 @@ extern "C" {
 /**........................................................
 // OS and CPU architecture delegation.                   */
 
-/* Windows, Linux and Mac */
 #if defined(_WIN32)
 #       define OS_WINDOWS 1
 #elif defined(__gnu_linux__) || defined(__linux__)
@@ -142,38 +141,6 @@ union U256 {
 };
 
 /**........................................................
-// Keyword and compiler attribute wrappers               */
-
-#define asm __asm__
-#define volatile __volatile__
-
-#define private static
-
-#if STD_C23
-#       define NIL nullptr
-#else          /* !STD_C23 */
-#       define NIL ((U0*)0)
-#endif 
-
-#if GNU_COMPILER || CLANG_COMPILER
-#       define always_inline inline __attribute__((__always_inline__))
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define always_inline inline
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
-
-#if GNU_COMPILER || CLANG_COMPILER
-#       define TypeOf(t) __typeof__(t)
-#elif STD_C23
-#       define TypeOf(t) typeof(t)
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
-
-#ifndef offsetof
-#       define OffsetOf(T, m) ((U64) &((T*)0)->m)
-#else          /* defined(offsetof) */
-#       define OffsetOf(T, m) offsetof(T, m)
-#endif         /* !offsetof */
-
-/**........................................................
 // Units                                                 */
 
 #define KB(n) (((U64)(n))<<10)
@@ -182,136 +149,59 @@ union U256 {
 #define TB(n) (((U64)(n))<<40)
 
 /**........................................................
-// Asserts and Typechecking                              
-
-* When using HintAssert, compile with -fsanitize=undefined
-* to enable UndefinedBehaviourSanitizer to detect UB at runtime.
-
-* Alternatively, compile with just -fsanitize=unreachable
-* and -fsanitize-trap=unreachable if one finds further sanitizer
-* machinery unnecessary. On higher optimizations without -fsanitize,
-* the compiler understands that __builtin_unreachable() is an invalid
-* code path and will skip generating assembly for the while loop.
-*
-* [Clang]
-* https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#ubsan-checks
-*
-* [GCC]
-* https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html */
-
-#ifndef ASSERT_ALL
-#       define ASSERT_ALL     1
-#endif
-
-#if ASSERT_ALL
-#  ifndef COMPILE_ASSERT
-#       define COMPILE_ASSERT 1
-#  endif
-#  ifndef RUNTIME_ASSERT
-#       define RUNTIME_ASSERT 1
-#  endif
-#  ifndef HINT_ASSERT
-#       define HINT_ASSERT    1
-#  endif
-#endif
-
-#ifndef COMPILE_ASSERT
-#       define COMPILE_ASSERT 0
-#endif
-#ifndef RUNTIME_ASSERT
-#       define RUNTIME_ASSERT 0
-#endif
-#ifndef HINT_ASSERT
-#       define HINT_ASSERT    0
-#endif
-
-#if COMPILE_ASSERT
-#  if STD_C11 || GNU_COMPILER || CLANG_COMPILER
-#       define CompileAssert(...) _Static_assert(__VA_ARGS__)
-#  else        /* !(STD_C11 || GNU_COMPILER || CLANG_COMPILER) */
-#       define CompileAssert(...) ((U0)(__VA_ARGS__))
-#  endif       /* STD_C11 || GNU_COMPILER || CLANG_COMPILER    */
-#else          /* !COMPILE_ASSERT */
-#       define CompileAssert(...) ((U0)(__VA_ARGS__))
-#endif         /*  COMPILE_ASSERT */
-
-#if RUNTIME_ASSERT
-#  if GNU_COMPILER || CLANG_COMPILER
-#       define RuntimeAssert(c) do { if (!(c)) __builtin_trap(); } while(0)
-#  elif MSVC_COMPILER
-#       define RuntimeAssert(c) do { if (!(c)) __debugbreak();   } while(0)
-#  else        /* !(GNU_COMPILER || CLANG_COMPILER) && MSVC_COMPLIER */
-#       define RuntimeAssert(c) ((U0)(c))
-#  endif       /*   GNU_COMPILER || CLANG_COMPILER && MSVC_COMPLIER  */
-#else          /* !RUNTIME_ASSERT */
-#       define RuntimeAssert(c) ((U0)(c))
-#endif         /*  RUNTIME_ASSERT */
-
-#if HINT_ASSERT
-#  if GNU_COMPILER || CLANG_COMPILER
-#       define HintAssert(c) while (!(c)) __builtin_unreachable()
-#  elif MSVC_COMPILER
-#       define HintAssert(c) while (!(c)) __assume(0)
-#  else        /* !(GNU_COMPILER || CLANG_COMPILER) && MSVC_COMPLIER */
-#       define HintAssert(c) ((U0)(c))
-#  endif       /* GNU_COMPILER || CLANG_COMPILER */
-#else          /* !HINT_ASSERT */
-#       define HintAssert(c) ((U0)(c))
-#endif         /*  HINT_ASSERT */
-
-/**........................................................
-// Debugging, poisoning and address sanitizer utilities  */
-
-typedef enum PoisonPtrTrait PoisonPtrTrait;
-enum PoisonPtrTrait {
-
-};
-
-#ifndef DEBUG
-#       define DEBUG 0
-#endif         /* !DEBUG */
-
-#ifndef DIAGNOSIC
-#       define DIAGNOSTIC 1
-#endif         /* !DIAGNOSTIC */
-
-#ifndef TRACE
-#define TRACE 1
-#endif
-        
-#if GNU_COMPILER || CLANG_COMPILER
-#  if defined(__has_feature)
-#    if __has_feature(address_sanitizer)
-#       define ASAN_ENABLED 1
-#    endif     /* __has_feature(address_sanitizer) */
-#  endif       /* defined(__has_feature) */
-
-#  elif defined(__SANITIZE_ADDRESS__)
-#       define ASAN_ENABLED 1
-#  endif       /* defined(__SANITIZE_ADDRESS__) */
-#endif         /* GNU_COMPILER || CLANG_COMPILER */
+// Keyword and compiler attribute wrappers               */
 
 #if GNU_COMPILER || CLANG_COMPILER
-#       define PtrInvalidate(a, n) ({                                                            \
-               CompileAssert(__builtin_classify_type(a) == __builtin_classify_type((U0*)0) &&    \
-                             __builtin_classify_type(n) == __builtin_classify_type((S32)0)       \
-                             "PtrInvalidate: a must be a ptr and n must be an integer.");        \
-               do { (a) = ((U0*)-n); } while(0);                                                 \
-        })
-#       define PtrIsInvalidated(a, n) ((x) == (U0*)(Iptr)-n)
-#elif
-#       define PtrInvalidate(a, n) do { (a) = ((U0*)-n); } while(0)
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define PtrInvalidate(a, n) (((U0)(a) = (a)), (U0)(n))
+#       define ComplierExt(...) __attribute__((__VA_ARGS__))
+#elif MSVC_COMPILER
+#       define ComplierExt(...) __declspec((__VA_ARGS__))
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) && !MSVC_COMPILER */
+#       define ComplierExt(...) ((U0)(__VA_ARGS__))
 #endif         /*   GNU_COMPILER || CLANG_COMPILER  */
 
-#if DEBUG && ASAN_ENABLED
-#       define DBG_PoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
-#       define DBG_UnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
-#else          /* !(DEBUG && ASAN_ENABLED) */
-#       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
-#       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
-#endif         /*  DEBUG && ASAN_ENABLED   */
+#if GNU_COMPILER || CLANG_COMPILER
+#       define TypeOf(t) __typeof__(t)
+#       define AlignOf(t) __alignof__(t)
+#elif STD_C23
+#       define TypeOf(t) typeof(t)
+#       define AlignOf(t) alignof(t)
+#elif STD_C11
+#       define AlignOf(t) _Alignof(t)
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+
+/* Note that the #else branch implementation of offsetof fails UBSAN;
+ * instead use __builtin_offsetof() available since GCC 4 and Clang 4.
+ * [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html */
+
+#undef offsetof
+#if GNU_COMPILER || CLANG_COMPILER
+#       define OffsetOf(T, m) __builtin_offsetof(T, m)
+#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
+#       define OffsetOf(T, m) ((U64) &((T*)0)->m)
+#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+
+#undef NULL
+#if STD_C23
+#       define NULL nullptr
+        typedef TypeOf(NULL) Nptr;
+#else          /* !STD_C23 */
+#       define NULL ((U0*)0)
+#endif         /*  STD_C23 */
+
+#define asm __asm__
+#define volatile __volatile__
+
+#define private static
+
+/**........................................................
+// Type alignment                                        */
+
+#if GNU_COMPILER || CLANG_COMPILER
+#       define AlignType(x) CompilerExt(aligned(x))
+#elif MSVC_COMPILER
+#       define AlignType(x) CompilerExt(align(x))
+#endif
+        
 
 /**........................................................
 // Branch prediction macros                              */
@@ -341,7 +231,7 @@ enum PoisonPtrTrait {
 #define LengthOf(x) (CountOf(x)-1)
 
 /**........................................................
-// Struct member offset macros to emulate inheritance.   */
+// Struct member offset macros                           */
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define CastFromMember(T, m, ptr) ({                                                      \

@@ -6,7 +6,6 @@
 *  Your average optimizing compiler can inline this during release.
 *  See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.          */
 
-#define NumTypes(X) X(I16) X(I32) X(I64) X(U16) X(U32) X(U64) X(F32) X(F64)
 #define MakeMaxFn(T) static inline T max##T(T x, T y) { return (x > y) ? x : y; }
 #define MakeMinFn(T) static inline T min##T(T x, T y) { return (x < y) ? x : y; }
 #define MakeSwapFn(T) static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }
@@ -19,10 +18,10 @@
                 return val;                     \
         }
 
-NumTypes(MakeMaxFn)
-NumTypes(MakeMinFn)
-NumTypes(MakeSwapFn)
-NumTypes(MakeClampFn)
+XMacroNumTypes(MakeMaxFn)
+XMacroNumTypes(MakeMinFn)
+XMacroNumTypes(MakeSwapFn)
+XMacroNumTypes(MakeClampFn)
 
 #undef MakeMaxFn
 #undef MakeMinFn

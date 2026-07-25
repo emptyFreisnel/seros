@@ -1,9 +1,15 @@
 /**........................................................
 // Asserts.                                              */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef COMPILE_ASSERT         
+#       define COMPILE_ASSERT 0
+#endif         /* !COMPILE_ASSERT */                         
+#ifndef RUNTIME_ASSERT         
+#       define RUNTIME_ASSERT 0
+#endif         /* !RUNTIME_ASSERT */                
+#ifndef HINT_ASSERT            
+#       define HINT_ASSERT    0
+#endif         /* !HINT_ASSERT */
 
 #ifndef ASSERT_ALL
 #       define ASSERT_ALL     1
@@ -12,6 +18,10 @@ extern "C" {
 #ifndef ASSERT_USE_HINT
 #       define ASSERT_USE_HINT 1 
 #endif         /* !ASSERT_USE_HINT */
+
+#ifndef ASSERT_USE_DIAGNOSTIC
+#       define ASSERT_USE_DIAGNOSTIC 0
+#endif         /* !ASSERT_USE_DIAGNOSTIC */
 
 #if ASSERT_ALL
 #  ifndef COMPILE_ASSERT
@@ -23,17 +33,13 @@ extern "C" {
 #  ifndef HINT_ASSERT           
 #       define HINT_ASSERT    1
 #  endif       /* !HINT_ASSERT    */ 
-#endif         /*  ASSERT_ALL  */                 
-                               
-#ifndef COMPILE_ASSERT         
-#       define COMPILE_ASSERT 0
-#endif         /* !COMPILE_ASSERT */                         
-#ifndef RUNTIME_ASSERT         
-#       define RUNTIME_ASSERT 0
-#endif         /* !RUNTIME_ASSERT */                
-#ifndef HINT_ASSERT            
-#       define HINT_ASSERT    0
-#endif         /* !HINT_ASSERT */
+#endif         /*  ASSERT_ALL  */
+
+#if ASSERT_USE_DIAGNOSTIC
+#       define Diagnostic(s, w) assert_log(s, w);
+#else
+#       define Diagnostic(s, w) ((U0)(s), (U0)(w))
+#endif
 
 #if COMPILE_ASSERT
 #  if STD_C11 || GNU_COMPILER || CLANG_COMPILER
@@ -99,12 +105,15 @@ extern "C" {
 #endif         /* Assert */
 
 /**........................................................
-// Debugging, poisoning and address sanitizer utilities  */
+// Debug toggle.                                         */
 
 #ifndef DEBUG
 #       define DEBUG 0
 #endif         /* !DEBUG */
-        
+
+/**........................................................
+// Address Sanitizer wrappers                            */
+
 #if GNU_COMPILER || CLANG_COMPILER
 #  if defined(__has_feature)
 #    if __has_feature(address_sanitizer)
@@ -115,6 +124,21 @@ extern "C" {
 #  endif       /* defined(__has_feature) */
 #endif         /* ASAN_ENABLED */
 
+#if DEBUG && ASAN_ENABLED
+#       define DBG_PoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
+#       define DBG_UnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
+#else          /* !(DEBUG && ASAN_ENABLED) */ 
+#       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
+#       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
+#endif         /* DBG_PoisonMemRegion && DBG_UnpoisonMemRegion */
+
+/**........................................................
+// Thread Sanitizer utilities                            */
+
+/**........................................................
+// Poisoned pointers and unmmappable memory markers      */
+
+/* TODO: HandleInvalidate */
 #if GNU_COMPILER || CLANG_COMPILER
 #       define PtrInvalidate(ptr, n) ({                                                          \
                CompileAssert(__builtin_classify_type(ptr) == __builtin_classify_type((U0*)0) &&  \
@@ -128,21 +152,7 @@ extern "C" {
 
 #define PtrIsInvalidated(ptr, n) ((ptr) == (U0*)(Iptr)n)
 
-#if DEBUG && ASAN_ENABLED
-#       define DBG_PoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
-#       define DBG_UnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
-#else          /* !(DEBUG && ASAN_ENABLED) */
-#       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
-#       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
-#endif         /* DBG_PoisonMemRegion && DBG_UnpoisonMemRegion */
-
-/**........................................................
-// Poison marker defines                                 */
-
 /* base_list.h && base_list.c */
 #define LISTNODE_POISON_PREVPTR 0xDEAD0001
 #define LISTNODE_POISON_NEXTPTR 0xDEAD0002
 
-#ifdef __cplusplus
-}
-#endif

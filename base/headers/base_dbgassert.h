@@ -47,8 +47,8 @@ extern "C" {
 
 /* RuntimeAssert: Diagnostic prints are printed out   */
 
-static inline U0
-assert_log(S8 str, U0 *ptr) {};
+/* static inline U0 */
+/* assert_log(S8 str, U0 *ptr) {}; */
 
 #if RUNTIME_ASSERT
 #  if GNU_COMPILER || CLANG_COMPILER
@@ -101,10 +101,6 @@ assert_log(S8 str, U0 *ptr) {};
 /**........................................................
 // Debugging, poisoning and address sanitizer utilities  */
 
-/* base_list.h && base_list.c */
-#define LISTNODE_POISON_PREVPTR 0xDEAD0001
-#define LISTNODE_POISON_NEXTPTR 0xDEAD0002
-
 #ifndef DEBUG
 #       define DEBUG 0
 #endif         /* !DEBUG */
@@ -122,7 +118,7 @@ assert_log(S8 str, U0 *ptr) {};
 #if GNU_COMPILER || CLANG_COMPILER
 #       define PtrInvalidate(ptr, n) ({                                                          \
                CompileAssert(__builtin_classify_type(ptr) == __builtin_classify_type((U0*)0) &&  \
-                             __builtin_classify_type(n)   == __builtin_classify_type((S32)0)     \
+                             __builtin_classify_type(n)   == __builtin_classify_type((I32)0),    \
                              "PtrInvalidate: a must be a ptr and n must be an int/hex value.");  \
                do { (ptr) = ((U0*)n); } while(0);                                                \
         })
@@ -139,6 +135,13 @@ assert_log(S8 str, U0 *ptr) {};
 #       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
 #       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
 #endif         /*  DEBUG && ASAN_ENABLED   */
+
+/**........................................................
+// Poison marker defines                                 */
+
+/* base_list.h && base_list.c */
+#define LISTNODE_POISON_PREVPTR 0xDEAD0001
+#define LISTNODE_POISON_NEXTPTR 0xDEAD0002
 
 #ifdef __cplusplus
 }

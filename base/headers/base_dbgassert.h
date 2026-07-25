@@ -43,7 +43,7 @@ extern "C" {
 #  endif       /* STD_C11 || GNU_COMPILER || CLANG_COMPILER    */
 #else          /* !COMPILE_ASSERT */
 #       define CompileAssert(...) ((U0)(__VA_ARGS__))
-#endif         /*  COMPILE_ASSERT */
+#endif         /* CompileAssert   */
 
 /* RuntimeAssert: Diagnostic prints are printed out   */
 
@@ -60,7 +60,7 @@ extern "C" {
 #  endif       /*   GNU_COMPILER || CLANG_COMPILER && MSVC_COMPLIER  */
 #else          /* !RUNTIME_ASSERT */
 #       define RuntimeAssert(c) ((U0)(c))
-#endif         /*  RUNTIME_ASSERT */
+#endif         /* RuntimeAssert   */
 
 /* HintAssert: Enable UndefinedBehaviourSanitizer by passing -fsanitize=undefined.
  * If compiled on higher optimization flags without -fsanitize, __builtin_unreachable()
@@ -86,7 +86,7 @@ extern "C" {
 #  endif       /*  GNU_COMPILER || CLANG_COMPILER */
 #else          /* !HINT_ASSERT */
 #       define HintAssert(c) ((U0)(c))
-#endif         /*  HINT_ASSERT */
+#endif         /* HintAssert */
 
 #if RUNTIME_ASSERT && HINT_ASSERT
 #  if ASSERT_USE_HINT
@@ -96,7 +96,7 @@ extern "C" {
 #  endif       /*  ASSERT_USE_HINT */
 #else          /* !(RUNTIME_ASSERT && HINT_ASSERT) */
 #       define Assert(c) ((U0)(c))
-#endif         /*   RUNTIME_ASSERT && HINT_ASSERT  */
+#endif         /* Assert */
 
 /**........................................................
 // Debugging, poisoning and address sanitizer utilities  */
@@ -113,7 +113,7 @@ extern "C" {
 #  elif defined(__SANITIZE_ADDRESS__)
 #       define ASAN_ENABLED 1
 #  endif       /* defined(__has_feature) */
-#endif         /* GNU_COMPILER || CLANG_COMPILER */
+#endif         /* ASAN_ENABLED */
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define PtrInvalidate(ptr, n) ({                                                          \
@@ -124,7 +124,7 @@ extern "C" {
         })
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define PtrInvalidate(ptr, n) do { (ptr) = ((U0*)n); } while(0)
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#endif         /* PtrInvalidate */
 
 #define PtrIsInvalidated(ptr, n) ((ptr) == (U0*)(Iptr)n)
 
@@ -134,7 +134,7 @@ extern "C" {
 #else          /* !(DEBUG && ASAN_ENABLED) */
 #       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
 #       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
-#endif         /*  DEBUG && ASAN_ENABLED   */
+#endif         /* DBG_PoisonMemRegion && DBG_UnpoisonMemRegion */
 
 /**........................................................
 // Poison marker defines                                 */

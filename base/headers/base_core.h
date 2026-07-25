@@ -80,7 +80,7 @@
 
 #if ARCH_X64 || ARCH_ARM64
 #       define ARCH_64BIT 1
-#elif ARCH_X86 || ARCH_ARM64
+#elif ARCH_X86 || ARCH_ARM32
 #       define ARCH_32BIT 1
 #endif
 
@@ -208,10 +208,10 @@ union U256 {
 #       define CountOf(x) ({                                                                     \
                CompileAssert(!__builtin_types_compatible_p(TypeOf(x), TypeOf(&(x)[0])),          \
                              "CountOf: argument must be a real array and not a pointer.");       \
-               (S32) (sizeof(x)/sizeof((x)[0]));                                                 \
+               (I32) (sizeof(x)/sizeof((x)[0]));                                                 \
         })
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define CountOf(x) ((S32)(sizeof(x) / sizeof((x)[0])))
+#       define CountOf(x) ((I32)(sizeof(x) / sizeof((x)[0])))
 #endif         /* CountOf */
 
 #define LengthOf(x) (CountOf(x)-1)
@@ -224,10 +224,10 @@ union U256 {
                CompileAssert(__builtin_types_compatible_p(TypeOf(ptr), TypeOf(&(((T*)0)->m))) || \
                              __builtin_types_compatible_p(TypeOf(ptr), U0*),                     \
                              "CastFromMember: ptr type does not match member type.");            \
-               (T*) ((S8*) (ptr)-OffsetOf(T,m));                                                 \
+               (T*) ((I8*) (ptr)-OffsetOf(T,m));                                                 \
         })
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define CastFromMember(T, m, ptr) (T*) ((S8*) (ptr)-OffsetOf(T,m))
+#       define CastFromMember(T, m, ptr) (T*) ((I8*) (ptr)-OffsetOf(T,m))
 #endif         /* CastFromMember */
 
 #endif /* SEROS_BASE_CORE */

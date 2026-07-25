@@ -1,18 +1,8 @@
 /**........................................................
-// C core utilities.
-
-*  The code in this file is seperated into the following
-
-*  1. Freestanding header includes.
-*  2. Compiler versioning delegation.
-*  3. OS and CPU architecture delegation.                */
+// C core utilities.                                     */
 
 #ifndef SEROS_BASE_CORE
 #define SEROS_BASE_CORE
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**........................................................
 // Freestanding/standalone header includes.              */
@@ -29,7 +19,7 @@ extern "C" {
 #       define GNU_COMPILER   1
 #elif defined(_MSC_VER)
 #       define MSVC_COMPILER  1
-#endif
+#endif  /* CLANG_COMPILER, GNU_COMPILER, MSVC_COMPILER */
 
 #ifdef __STDC__
 #  ifndef __STDC_VERSION__
@@ -52,8 +42,8 @@ extern "C" {
 #  endif
 #  if __STDC_VERSION__ >  202311L
 #       define STD_C2Y 1
-#  endif
-#endif /* __STDC__ */
+#  endif       /* __STDC_VERSION__ */
+#endif  /* __STDC__ */
 
 /**........................................................
 // OS and CPU architecture delegation.                   */
@@ -64,31 +54,29 @@ extern "C" {
 #       define OS_LINUX   1
 #elif defined(__APPLE__) && defined(__MACH__)
 #       define OS_MAC     1
-#endif
+#endif         /* OS_WINDOWS, OS_LINUX, OS_MAC */
 
-/* x86 and x86-64 */
 #if defined(__amd64__) || defined(__amd64)
 #       define ARCH_X64   1
 #elif defined(__x86_64__) || defined(__x86_64)
 #       define ARCH_X64   1
-#elif defined(i386)   || defined(__i386__)
+#elif defined(i386) || defined(__i386__)
 #       define ARCH_X86   1
 #elif defined(__i386) || defined(_M_IX86)
 #       define ARCH_X86   1
-#endif
+#endif         /* ARCH_X64, ARCH_X86 */
 
-/* AARCH64 and ARM32 */
 #if defined(__aarch64__)
 #       define ARCH_ARM64 1
 #elif defined(__arm__)
 #       define ARCH_ARM32 1
-#endif
-        
+#endif         /* ARCH_ARM32, ARCH_ARM64 */
+
 #if defined(__riscv__)
 #       define ARCH_RISCV 1
 #elif defined(__mips__)
 #       define ARCH_MIPS  1
-#endif
+#endif         /* ARCH_RISCV, ARCH_MIPS */
 
 #if ARCH_X64 || ARCH_ARM64
 #       define ARCH_64BIT 1
@@ -116,6 +104,8 @@ typedef U32       B32;
 typedef U64       B64;
 typedef float     F32;
 typedef double    F64;
+
+#define XMacroNumTypes(X) X(U16) X(U32) X(U64) X(I16) X(I32) X(I64) X(F32) X(F64)
 
 typedef U0 Proc(U0);
 
@@ -152,12 +142,12 @@ union U256 {
 // Keyword and compiler attribute wrappers               */
 
 #if GNU_COMPILER || CLANG_COMPILER
-#       define ComplierExt(...) __attribute__((__VA_ARGS__))
+#       define CompilerExt(...) __attribute__((__VA_ARGS__))
 #elif MSVC_COMPILER
-#       define ComplierExt(...) __declspec((__VA_ARGS__))
+#       define CompilerExt(...) __declspec((__VA_ARGS__))
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) && !MSVC_COMPILER */
-#       define ComplierExt(...) ((U0)(__VA_ARGS__))
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#       define CompilerExt(...) ((U0)(__VA_ARGS__))
+#endif         /*   CompilerExt  */
 
 #if GNU_COMPILER || CLANG_COMPILER
 #       define TypeOf(t) __typeof__(t)
@@ -167,7 +157,13 @@ union U256 {
 #       define AlignOf(t) alignof(t)
 #elif STD_C11
 #       define AlignOf(t) _Alignof(t)
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#endif         /* TypeOf, AlignOf  */
+
+#if GNU_COMPILER || CLANG_COMPILER
+#       define AlignType(x) CompilerExt(aligned(x))
+#elif MSVC_COMPILER
+#       define AlignType(x) CompilerExt(align(x))
+#endif        /*  AlignType  */
 
 /* Note that the #else branch implementation of offsetof fails UBSAN;
  * instead use __builtin_offsetof() available since GCC 4 and Clang 4.
@@ -178,30 +174,20 @@ union U256 {
 #       define OffsetOf(T, m) __builtin_offsetof(T, m)
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define OffsetOf(T, m) ((U64) &((T*)0)->m)
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#endif         /* OffsetOf */
 
 #undef NULL
 #if STD_C23
 #       define NULL nullptr
-        typedef TypeOf(NULL) Nptr;
+        typedef TypeOf(NULL) /* nullptr_t */ Nptr;
 #else          /* !STD_C23 */
 #       define NULL ((U0*)0)
-#endif         /*  STD_C23 */
+#endif         /* NULL */
 
 #define asm __asm__
 #define volatile __volatile__
 
 #define private static
-
-/**........................................................
-// Type alignment                                        */
-
-#if GNU_COMPILER || CLANG_COMPILER
-#       define AlignType(x) CompilerExt(aligned(x))
-#elif MSVC_COMPILER
-#       define AlignType(x) CompilerExt(align(x))
-#endif
-        
 
 /**........................................................
 // Branch prediction macros                              */
@@ -210,7 +196,7 @@ union U256 {
 #       define Expect(e, v) __builtin_expect((e), (v))
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define Expect(e, v) (e)
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#endif         /* Expect  */
 
 #define Likely(e)   Expect((e), 1)
 #define Unlikely(e) Expect((e), 0)
@@ -226,7 +212,7 @@ union U256 {
         })
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define CountOf(x) ((S32)(sizeof(x) / sizeof((x)[0])))
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
+#endif         /* CountOf */
 
 #define LengthOf(x) (CountOf(x)-1)
 
@@ -242,10 +228,6 @@ union U256 {
         })
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) */
 #       define CastFromMember(T, m, ptr) (T*) ((S8*) (ptr)-OffsetOf(T,m))
-#endif         /*   GNU_COMPILER || CLANG_COMPILER  */
-
-#ifdef __cplusplus
-}
-#endif
+#endif         /* CastFromMember */
 
 #endif /* SEROS_BASE_CORE */

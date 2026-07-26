@@ -1,9 +1,8 @@
 /**........................................................
 // String types.                                         */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef SEROS_BASE_STRING
+#define SEROS_BASE_STRING
 
 typedef struct String8 S8;
 struct String8 {
@@ -14,7 +13,4 @@ struct String8 {
 /* String literal */
 #define S8Lit(s) (S8) { (s), LengthOf(s); }
 
-
-#ifdef __cplusplus
-}
-#endif
+#endif /* SEROS_BASE_STRING */

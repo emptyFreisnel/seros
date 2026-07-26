@@ -45,10 +45,10 @@
 #  if STD_C11 || GNU_COMPILER || CLANG_COMPILER
 #       define CompileAssert(...) _Static_assert(__VA_ARGS__)
 #  else        /* !(STD_C11 || GNU_COMPILER || CLANG_COMPILER) */
-#       define CompileAssert(...) ((U0)(__VA_ARGS__))
+#       define CompileAssert(...) ((U0)0)
 #  endif       /* STD_C11 || GNU_COMPILER || CLANG_COMPILER    */
 #else          /* !COMPILE_ASSERT */
-#       define CompileAssert(...) ((U0)(__VA_ARGS__))
+#       define CompileAssert(...) ((U0)0)
 #endif         /* CompileAssert   */
 
 /* RuntimeAssert: Diagnostic prints are printed out   */

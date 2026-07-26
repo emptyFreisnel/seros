@@ -4,6 +4,7 @@
 /**........................................................
 // OS architecture delegation.                          */
 
+// TODO: FreeBSD and OpenBSD
 #if defined(_WIN32)
 #       define OS_WINDOWS 1
 #endif         /* OS_WINDOWS */
@@ -27,8 +28,8 @@
  * [Linux]  
 // TODO syscall entry point layers */
 
-#if OS_LINUX
-#  if ARCH_X64
+#if GNU_COMPILER || CLANG_COMPILER
+#  if OS_LINUX && ARCH_X64
 
         static inline I64
         scall_iface_(I64 num, I64 _1, I64 _2, I64 _3, I64 _4, I64 _5, I64 _6)
@@ -44,7 +45,8 @@
 
                 asm volatile("syscall"
                 /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(_rdi), "r"(_rsi), "r"(_rdx), "0"(_rax)
+                /* Inputs  */: "r"(_rdi), "r"(_rsi), "r"(_rdx),
+                               "r"(_r10), "r"(_r8), "r"(_r9), "0"(_rax)
                 /* Clobbers*/: "rcx", "r11", "cc", "memory"              
                 );
 
@@ -75,12 +77,8 @@
                 return scall_iface_(3, fd, (I64)0, (I64)0, (I64)0, (I64)0, (I64)0);
         }
 
-        
-#  endif /* ARCH_X64 */
-
-#  if ARCH_ARM64
+#  elif OS_LINUX && ARCH_ARM64
 #  endif
         
-#endif /* OS_LINUX */
-
+#endif /* GNU_COMPILER || CLANG_COMPILER */
 #endif

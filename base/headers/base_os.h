@@ -2,190 +2,72 @@
 #define SEROS_BASE_OS
 
 /**........................................................
-// OS architecture delegation.                          */
+// OS architecture delegation.                           */
 
-// TODO: FreeBSD and OpenBSD
 #if defined(_WIN32)
 #       define OS_WINDOWS 1
+#elif defined(_WIN64)
+#       define OS_WINDOWS 1
+#elif defined(__WIN32__)
+#       define OS_WINDOWS 1
+#elif defined(__NT__)
+#       define OS_WINDOWS 1
 #endif         /* OS_WINDOWS */
+#if defined(__APPLE__) && defined(__MACH__)
+#       define OS_MAC     1
+#endif         /* OS_MAC     */
+#if defined(__linux__)
+#       define OS_LINUX   1
+#elif defined(__linux)
+#       define OS_LINUX   1
+#elif defined(__gnu_linux__)
+#       define OS_LINUX   1
+#endif         /* OS_LINUX   */
+#if defined(__FreeBSD__)
+#       define OS_FREEBSD 1
+#elif defined(__FreeBSD_kernel__)
+#       define OS_FREEBSD 1
+#endif         /* OS_FREEBSD */
+#if defined(__OpenBSD__)
+#       define OS_OPENBSD 1
+#endif         /* OS_OPENBSD */
+#if defined(__NetBSD__)
+#       define OS_NETBSD  1
+#elif defined(__NetBSD_Version__)
+#       define OS_NETBSD  1
+#endif         /* OS_NETBSD  */
 
-#if defined(__gnu_linux__)
-#       define OS_LINUX 1
-#elif defined(__linux__)
-#       define OS_LINUX 1
-#endif        /* OS_LINUX */
+#if !defined(OS_WINDOWS)
+#       define OS_WINDOWS 0
+#endif         /* !defined(OS_WINDOWS) */
+#if !defined(OS_MAC)
+#       define OS_MAC     0
+#endif         /* !defined(OS_MAC)     */
+#if !defined(OS_LINUX)
+#       define OS_LINUX   0
+#endif         /* !defined(OS_LINUX)   */
+#if !defined(OS_FREEBSD)
+#       define OS_FREEBSD 0
+#endif         /* !defined(OS_FREEBSD) */
+#if !defined(OS_OPENBSD)
+#       define OS_OPENBSD 0
+#endif         /* !defined(OS_OPENBSD) */
+#if !defined(OS_NETBSD)
+#       define OS_NETBSD  0
+#endif        /* !defined(OS_NETBSD)   */
 
-#if defined(__APPLE__)
-#       define OS_MAC   1
-#elif defined(__MACH__)
-#       define OS_MAC   1
-#endif         /* OS_MAC */
+#if !(OS_WINDOWS || OS_MAC || OS_LINUX || OS_FREEBSD || OS_OPENBSD || OS_NETBSD)
+#       error "seros: Unrecognised operating system / kernel environment."
+#endif
 
 /**........................................................
 // Linux direct syscall interface.                       */
 
 /* [Chromium] https://chromium.googlesource.com/linux-syscall-support
  * [Linux]  
-// TODO syscall entry point layers */
+ // TODO syscall entry point layers */
 
-#if GNU_COMPILER || CLANG_COMPILER
-#  if OS_LINUX && ARCH_X64
+//extern Iptr read_scall_(Iptr fd, Iptr buf, Iptr count);
+extern Iptr wrte_scall_(Iptr fd, Iptr buf, Iptr count);
 
-        static inline I64
-        scall_iface0_(I64 num)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface1_(I64 num, I64 _1)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(rdi), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface2_(I64 num, I64 _1, I64 _2)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                register I64 _rsi asm("rsi") = _2;
-                
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(rdi), "r"(rsi), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface3_(I64 num, I64 _1, I64 _2, I64 _3)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                register I64 _rsi asm("rsi") = _2;
-                register I64 _rdx asm("rdx") = _3;
-                
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(rdi), "r"(rsi), "r"(rdx), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface4_(I64 num, I64 _1, I64 _2, I64 _3, I64 _4)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                register I64 _rsi asm("rsi") = _2;
-                register I64 _rdx asm("rdx") = _3;
-                register I64 _r10 asm("r10") = _4;
-                
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(rdi), "r"(rsi), "r"(rdx),
-                               "r"(r10), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface5_(I64 num, I64 _1, I64 _2, I64 _3, I64 _4, I64 _5)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                register I64 _rsi asm("rsi") = _2;
-                register I64 _rdx asm("rdx") = _3;
-                register I64 _r10 asm("r10") = _4;
-                register I64 _r8  asm("r8")  = _5;
-
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(_rdi), "r"(_rsi), "r"(_rdx),
-                               "r"(_r10), "r"(_r8), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        scall_iface6_(I64 num, I64 _1, I64 _2, I64 _3, I64 _4, I64 _5, I64 _6)
-        {
-                I64 _ret;
-                register I64 _rax asm("rax") = num;
-                register I64 _rdi asm("rdi") = _1;
-                register I64 _rsi asm("rsi") = _2;
-                register I64 _rdx asm("rdx") = _3;
-                register I64 _r10 asm("r10") = _4;
-                register I64 _r8  asm("r8")  = _5;
-                register I64 _r9  asm("r9")  = _6;
-
-                asm volatile("syscall"
-                /* Outputs */: "=a"(_ret)
-                /* Inputs  */: "r"(_rdi), "r"(_rsi), "r"(_rdx),
-                               "r"(_r10), "r"(_r8), "r"(_r9), "0"(_rax)
-                /* Clobbers*/: "rcx", "r11", "cc", "memory"              
-                );
-
-                return _ret;
-        }
-
-        static inline I64
-        read_scall0_(I64 fd, I64 buf, I64 cnt)
-        {
-                return scall_iface3_(0, fd, buf, cnt);
-        }
-        
-        static inline I64
-        wrte_scall1_(I64 fd, I64 buf, I64 cnt)
-        {
-                return scall_iface3_(1, fd, buf, cnt);
-        }
-
-        static inline I64
-        open_scall2_(I64 filename, I64 flags, I64 mode)
-        {
-                return scall_iface3_(2, filename, flags, mode);
-        }
-
-        static inline I64
-        clse_scall3_(I64 fd)
-        {
-                return scall_iface1_(3, fd);
-        }
-
-#  elif OS_LINUX && ARCH_ARM64
-#  endif
-        
-#endif /* GNU_COMPILER || CLANG_COMPILER */
-#endif
+#endif /* SEROS_BASE_OS */

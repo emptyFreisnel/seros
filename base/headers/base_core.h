@@ -19,6 +19,8 @@
 #       define GNU_COMPILER   1
 #elif defined(_MSC_VER)
 #       define MSVC_COMPILER  1
+#else 
+#       warning "seros: Unrecognised compiler."
 #endif  /* CLANG_COMPILER, GNU_COMPILER, MSVC_COMPILER */
 
 #ifdef __STDC__
@@ -46,42 +48,104 @@
 #endif  /* __STDC__ */
 
 /**........................................................
-// OS and CPU architecture delegation.                   */
+// CPU architecture delegation.                          */
 
-#if defined(_WIN32)
-#       define OS_WINDOWS 1
-#elif defined(__gnu_linux__) || defined(__linux__)
-#       define OS_LINUX   1
-#elif defined(__APPLE__) && defined(__MACH__)
-#       define OS_MAC     1
-#endif         /* OS_WINDOWS, OS_LINUX, OS_MAC */
+#if defined(__amd64__)
+#       define ARCH_X64   1
+#elif defined(__amd64)
+#       define ARCH_X64   1
+#elif defined(__x86_64__)
+#       define ARCH_X64   1
+#elif defined(__x86_64)
+#       define ARCH_X64   1
+#elif defined(_M_X64)
+#       define ARCH_X64   1
+#elif defined(_M_AMD64)
+#       define ARCH_X64   1
+#endif         /* ARCH_X64 */
 
-#if defined(__amd64__) || defined(__amd64)
-#       define ARCH_X64   1
-#elif defined(__x86_64__) || defined(__x86_64)
-#       define ARCH_X64   1
-#elif defined(i386) || defined(__i386__)
+#if defined(i386)
 #       define ARCH_X86   1
-#elif defined(__i386) || defined(_M_IX86)
+#elif defined(__i386__)
 #       define ARCH_X86   1
-#endif         /* ARCH_X64, ARCH_X86 */
+#elif defined(__i386)
+#       define ARCH_X86   1
+#elif defined(_M_IX86)
+#       define ARCH_X86   1
+#endif         /* ARCH_X86 */
 
 #if defined(__aarch64__)
 #       define ARCH_ARM64 1
-#elif defined(__arm__)
+#elif defined(_M_ARM64)
+#       define ARCH_ARM64 1
+#endif         /* ARCH_ARM64 */
+
+#if defined(__arm__)
 #       define ARCH_ARM32 1
-#endif         /* ARCH_ARM32, ARCH_ARM64 */
+#elif defined(_M_ARM)
+#       define ARCH_ARM32 1
+#endif         /* ARCH_ARM32 */
 
-#if defined(__riscv__)
+#if defined(__riscv)
 #       define ARCH_RISCV 1
-#elif defined(__mips__)
-#       define ARCH_MIPS  1
-#endif         /* ARCH_RISCV, ARCH_MIPS */
+#endif         /* ARCH_RISCV */
 
-#if ARCH_X64 || ARCH_ARM64
+#if defined(__mips__)
+#       define ARCH_MIPS  1
+#elif defined(__mips)
+#       define ARCH_MIPS  1
+#endif         /* ARCH_MIPS */
+
+#if !defined(ARCH_X64)
+#       define ARCH_X64   0
+#endif
+#if !defined(ARCH_X86)
+#       define ARCH_X86   0
+#endif
+#if !defined(ARCH_ARM64)
+#       define ARCH_ARM64 0
+#endif
+#if !defined(ARCH_ARM32)
+#       define ARCH_ARM32 0
+#endif
+#if !defined(ARCH_RISCV)
+#       define ARCH_RISCV 0
+#endif
+#if !defined(ARCH_MIPS)
+#       define ARCH_MIPS  0
+#endif
+
+#if !(ARCH_X64 || ARCH_X86 || ARCH_ARM64 || ARCH_ARM32 || ARCH_RISCV || ARCH_MIPS)
+#       error "seros: Unrecognised processor."
+#endif
+
+/**........................................................
+// Pointer width.                                        */
+
+#if ARCH_X64
 #       define ARCH_64BIT 1
-#elif ARCH_X86 || ARCH_ARM32
+#elif ARCH_ARM64
+#       define ARCH_64BIT 1
+#elif ARCH_RISCV && (__riscv_xlen == 64)
+#       define ARCH_64BIT 1
+#elif ARCH_MIPS && defined(__mips64)
+#       define ARCH_64BIT 1
+#elif ARCH_X86
 #       define ARCH_32BIT 1
+#elif ARCH_ARM32
+#       define ARCH_32BIT 1
+#elif ARCH_RISCV && (__riscv_xlen == 32)
+#       define ARCH_32BIT 1
+#elif ARCH_MIPS
+#       define ARCH_32BIT 1
+#else
+#       error "seros: Unrecognised architecture"
+#endif
+#if !defined(ARCH_64BIT)
+#       define ARCH_64BIT 0
+#endif
+#if !defined(ARCH_32BIT)
+#       define ARCH_32BIT 0
 #endif
 
 /**........................................................
@@ -163,7 +227,7 @@ union U256 {
 #       define AlignType(x) CompilerExt(aligned(x))
 #elif MSVC_COMPILER
 #       define AlignType(x) CompilerExt(align(x))
-#endif        /*  AlignType  */
+#endif        /*  AlignType */
 
 /* Note that the #else branch implementation of offsetof fails UBSAN;
  * instead use __builtin_offsetof() available since GCC 4 and Clang 4.
@@ -186,8 +250,6 @@ union U256 {
 
 #define asm __asm__
 #define volatile __volatile__
-
-#define private static
 
 /**........................................................
 // Branch prediction macros                              */

@@ -98,22 +98,22 @@
 
 #if !defined(ARCH_X64)
 #       define ARCH_X64   0
-#endif
+#endif         /* !defined(ARCH_X64) */
 #if !defined(ARCH_X86)
 #       define ARCH_X86   0
-#endif
+#endif         /* !defined(ARCH_X86) */
 #if !defined(ARCH_ARM64)
 #       define ARCH_ARM64 0
-#endif
+#endif         /* !defined(ARCH_ARM64) */
 #if !defined(ARCH_ARM32)
 #       define ARCH_ARM32 0
-#endif
+#endif         /* !defined(ARCH_ARM32) */
 #if !defined(ARCH_RISCV)
 #       define ARCH_RISCV 0
-#endif
+#endif         /* !defined(ARCH_RISCV) */
 #if !defined(ARCH_MIPS)
 #       define ARCH_MIPS  0
-#endif
+#endif         /* !defined(ARCH_MIPS) */
 
 #if !(ARCH_X64 || ARCH_X86 || ARCH_ARM64 || ARCH_ARM32 || ARCH_RISCV || ARCH_MIPS)
 #       error "seros: Unrecognised processor."
@@ -216,6 +216,8 @@ union U256 {
 #if GNU_COMPILER || CLANG_COMPILER
 #       define TypeOf(t) __typeof__(t)
 #       define AlignOf(t) __alignof__(t)
+#elif MSVC_COMPILER
+#       define AlignOf(t) __alignof(t)
 #elif STD_C23
 #       define TypeOf(t) typeof(t)
 #       define AlignOf(t) alignof(t)
@@ -231,7 +233,8 @@ union U256 {
 
 /* Note that the #else branch implementation of offsetof fails UBSAN;
  * instead use __builtin_offsetof() available since GCC 4 and Clang 4.
- * [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html */
+ * [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html
+ */
 
 #undef offsetof
 #if GNU_COMPILER || CLANG_COMPILER

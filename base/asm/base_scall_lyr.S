@@ -11,7 +11,7 @@
 
  * In principle Xnu 'can' be supported ala Cosmopolitan but seros will link to libSystem
  * instead (if needed).	The assembly layer powers the typed wrappers exported over to the
- * C side in xx.h, and does not itself require any codebase layers nor includes.
+ * C side in base_scall_lyr.h, and this file does not require any codebase layers nor includes.
 
  * [Cosmopolitan Libc]
  * https://github.com/jart/cosmopolitan/blob/3293fad0a9eac7865c019be98fb993eeb933405e/libc/sysv/syscall4.S

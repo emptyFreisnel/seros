@@ -360,7 +360,8 @@ union U256 {
 *  The Max, Min, Clamp and Swap functions are generated using X-macros.
 *  Assume additional stack traffic when using these in debug builds.
 *  Your average optimizing compiler can inline this during release.
-*  See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.          */
+*  See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.
+*/
 
 #define MakeMaxFn(T) static inline T max##T(T x, T y) { return (x > y) ? x : y; }
 #define MakeMinFn(T) static inline T min##T(T x, T y) { return (x < y) ? x : y; }

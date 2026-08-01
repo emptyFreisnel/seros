@@ -365,16 +365,10 @@ union U256 {
 
 #define MakeMaxFn(T) static inline T max##T(T x, T y) { return (x > y) ? x : y; }
 #define MakeMinFn(T) static inline T min##T(T x, T y) { return (x < y) ? x : y; }
-#define MakeSwapFn(T) static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }
-
-#define MakeClampFn(T)                          \
-        static inline T                         \
-        clamp##T(T val, T min, T max) {         \
-                if (val < min) return min;      \
-                if (val > max) return max;      \
-                return val;                     \
-        }
-
+#define MakeSwapFn(T) static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }         
+#define MakeClampFn(T) static inline T clamp##T(T v, T min, T max) { if (v < min) return min;    \
+                                                                     if (v > max) return max;    \
+                                                                     return v; }
 XMacroNumTypes(MakeMaxFn)
 XMacroNumTypes(MakeMinFn)
 XMacroNumTypes(MakeSwapFn)

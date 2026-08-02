@@ -138,7 +138,7 @@
 #       define ARCH_32BIT 1
 #elif ARCH_MIPS
 #       define ARCH_32BIT 1
-#else
+#else          /* !(ARCH_X64 || ARCH_X86 || ARCH_ARM64 || ARCH_ARM32 || ARCH_RISCV || ARCH_MIPS) */
 #       error "seros: Unrecognised architecture"
 #endif
 #if !defined(ARCH_64BIT)
@@ -201,7 +201,7 @@
 #endif         /* !defined(OS_OPENBSD) */
 #if !defined(OS_NETBSD)
 #       define OS_NETBSD  0
-#endif        /* !defined(OS_NETBSD)   */
+#endif         /* !defined(OS_NETBSD)  */
 
 #if !(OS_WINDOWS || OS_MAC || OS_LINUX || OS_FREEBSD || OS_OPENBSD || OS_NETBSD)
 #       error "seros: Unrecognised operating system / kernel environment."
@@ -269,7 +269,7 @@ union U256 {
 #elif MSVC_COMPILER
 #       define CompilerExt(...) __declspec((__VA_ARGS__))
 #else          /* !(GNU_COMPILER || CLANG_COMPILER) && !MSVC_COMPILER */
-#       define CompilerExt(...) ((U0)(__VA_ARGS__))
+#       define CompilerExt(...) ((U0)0)
 #endif         /*   CompilerExt  */
 
 #if GNU_COMPILER || CLANG_COMPILER
@@ -363,9 +363,9 @@ union U256 {
 *  See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.
 */
 
-#define MakeMaxFn(T) static inline T max##T(T x, T y) { return (x > y) ? x : y; }
-#define MakeMinFn(T) static inline T min##T(T x, T y) { return (x < y) ? x : y; }
-#define MakeSwapFn(T) static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }         
+#define MakeMaxFn(T)   static inline T max##T(T x, T y) { return (x > y) ? x : y; }
+#define MakeMinFn(T)   static inline T min##T(T x, T y) { return (x < y) ? x : y; }
+#define MakeSwapFn(T)  static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }         
 #define MakeClampFn(T) static inline T clamp##T(T v, T min, T max) { if (v < min) return min;    \
                                                                      if (v > max) return max;    \
                                                                      return v; }

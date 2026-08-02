@@ -1,36 +1,36 @@
 /**........................................................
 // Asserts.                                              */
 
-#ifndef COMPILE_ASSERT         
+#if !defined(COMPILE_ASSERT)         
 #       define COMPILE_ASSERT 0
 #endif         /* !COMPILE_ASSERT */                         
-#ifndef RUNTIME_ASSERT         
+#if !defined(RUNTIME_ASSERT)
 #       define RUNTIME_ASSERT 0
 #endif         /* !RUNTIME_ASSERT */                
-#ifndef HINT_ASSERT            
+#if !defined(HINT_ASSERT)
 #       define HINT_ASSERT    0
 #endif         /* !HINT_ASSERT */
 
-#ifndef ASSERT_ALL
+#if !defined(ASSERT_ALL)
 #       define ASSERT_ALL     1
 #endif         /* !ASSERT_ALL */
 
-#ifndef ASSERT_USE_HINT
+#if !defined(ASSERT_USE_HINT)
 #       define ASSERT_USE_HINT 1 
 #endif         /* !ASSERT_USE_HINT */
 
-#ifndef ASSERT_USE_DIAGNOSTIC
+#if !defined(ASSERT_USE_DIAGNOSTIC)
 #       define ASSERT_USE_DIAGNOSTIC 0
 #endif         /* !ASSERT_USE_DIAGNOSTIC */
 
 #if ASSERT_ALL
-#  ifndef COMPILE_ASSERT
+#  if !defined(COMPILE_ASSERT)
 #       define COMPILE_ASSERT 1
 #  endif       /* !COMPILE_ASSERT */                  
-#  ifndef RUNTIME_ASSERT        
+#  if !defined(RUNTIME_ASSERT)
 #       define RUNTIME_ASSERT 1
 #  endif       /* !RUNTIME_ASSERT */
-#  ifndef HINT_ASSERT           
+#  if !defined(HINT_ASSERT)           
 #       define HINT_ASSERT    1
 #  endif       /* !HINT_ASSERT    */ 
 #endif         /*  ASSERT_ALL  */
@@ -39,7 +39,7 @@
 #       define Diagnostic(s, w) assert_log(s, w);
 #else
 #       define Diagnostic(s, w) ((U0)(s), (U0)(w))
-#endif
+#endif         /* Diagnostic */
 
 #if COMPILE_ASSERT
 #  if STD_C11 || GNU_COMPILER || CLANG_COMPILER
@@ -80,7 +80,8 @@
 
  * [ Clang ] https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#ubsan-checks
  * [ GCC   ] https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
- * [ MSVC  ] https://learn.microsoft.com/en-us/cpp/intrinsics/assume?view=msvc-170  */
+ * [ MSVC  ] https://learn.microsoft.com/en-us/cpp/intrinsics/assume?view=msvc-170
+ */
 
 #if HINT_ASSERT
 #  if GNU_COMPILER || CLANG_COMPILER
@@ -107,7 +108,7 @@
 /**........................................................
 // Debug toggle.                                         */
 
-#ifndef DEBUG
+#if !defined(DEBUG)
 #       define DEBUG 0
 #endif         /* !DEBUG */
 

@@ -1,12 +1,12 @@
 /**........................................................
 // Asserts.                                              */
 
-#if !defined(COMPILE_ASSERT)         
+#if !defined(COMPILE_ASSERT)
 #       define COMPILE_ASSERT 0
-#endif         /* !COMPILE_ASSERT */                         
+#endif         /* !COMPILE_ASSERT */
 #if !defined(RUNTIME_ASSERT)
 #       define RUNTIME_ASSERT 0
-#endif         /* !RUNTIME_ASSERT */                
+#endif         /* !RUNTIME_ASSERT */
 #if !defined(HINT_ASSERT)
 #       define HINT_ASSERT    0
 #endif         /* !HINT_ASSERT */
@@ -16,7 +16,7 @@
 #endif         /* !ASSERT_ALL */
 
 #if !defined(ASSERT_USE_HINT)
-#       define ASSERT_USE_HINT 1 
+#       define ASSERT_USE_HINT 1
 #endif         /* !ASSERT_USE_HINT */
 
 #if !defined(ASSERT_USE_DIAGNOSTIC)
@@ -26,13 +26,13 @@
 #if ASSERT_ALL
 #  if !defined(COMPILE_ASSERT)
 #       define COMPILE_ASSERT 1
-#  endif       /* !COMPILE_ASSERT */                  
+#  endif       /* !COMPILE_ASSERT */
 #  if !defined(RUNTIME_ASSERT)
 #       define RUNTIME_ASSERT 1
 #  endif       /* !RUNTIME_ASSERT */
-#  if !defined(HINT_ASSERT)           
+#  if !defined(HINT_ASSERT)
 #       define HINT_ASSERT    1
-#  endif       /* !HINT_ASSERT    */ 
+#  endif       /* !HINT_ASSERT    */
 #endif         /*  ASSERT_ALL  */
 
 #if ASSERT_USE_DIAGNOSTIC
@@ -68,20 +68,19 @@
 #       define RuntimeAssert(c) ((U0)(c))
 #endif         /* RuntimeAssert   */
 
-/* HintAssert: Enable UndefinedBehaviourSanitizer by passing -fsanitize=undefined.
- * If compiled on higher optimization flags without -fsanitize, __builtin_unreachable()
- * (GCC/Clang) or __assume(0) (MSVC) optimizes out the invalidated path; the compiler
- * skips generating assembly for the while loop altogether regardless if the conditional
- * is true or false.
+/* HintAssert: Enable UndefinedBehaviourSanitizer by passing -fsanitize=undefined.       */
+/* If compiled on higher optimization flags without -fsanitize, __builtin_unreachable()  */
+/* (GCC/Clang) or __assume(0) (MSVC) optimizes out the invalidated path; the compiler    */
+/* skips generating assembly for the while loop altogether regardless if the conditional */
+/* is true or false.                                                                     */
 
- * Thus, prefer HintAssert as it also allows trapping of illegal instructions by passing
- * -fsanitize-trap=undefined (if needed) for debug builds. For release builds, simply
- * build without passing -fsanitize.
+/* Thus, prefer HintAssert as it also allows trapping of illegal instructions by passing */
+/* -fsanitize-trap=undefined (if needed) for debug builds. For release builds, simply    */
+/* build without passing -fsanitize.                                                     */
 
- * [ Clang ] https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#ubsan-checks
- * [ GCC   ] https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
- * [ MSVC  ] https://learn.microsoft.com/en-us/cpp/intrinsics/assume?view=msvc-170
- */
+/* [ Clang ] https: //clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#ubsan-checks   */
+/* [ GCC   ] https: //gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html            */
+/* [ MSVC  ] https: //learn.microsoft.com/en-us/cpp/intrinsics/assume?view=msvc-170      */
 
 #if HINT_ASSERT
 #  if GNU_COMPILER || CLANG_COMPILER
@@ -115,7 +114,7 @@
 /**........................................................
 // Address Sanitizer wrappers                            */
 
-#if GNU_COMPILER || CLANG_COMPILER
+#if CLANG_COMPILER
 #  if defined(__has_feature)
 #    if __has_feature(address_sanitizer)
 #       define ASAN_ENABLED 1
@@ -126,15 +125,28 @@
 #endif         /* ASAN_ENABLED */
 
 #if DEBUG && ASAN_ENABLED
-#       define DBG_PoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
-#       define DBG_UnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
-#else          /* !(DEBUG && ASAN_ENABLED) */ 
-#       define DBG_PoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
-#       define DBG_UnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
+#       define AsanPoisonMemRegion(a, s)   __asan_poison_memory_region((a), (s))
+#       define AsanUnpoisonMemRegion(a, s) __asan_unpoison_memory_region((a), (s))
+#else          /* !(DEBUG && ASAN_ENABLED) */
+#       define AsanPoisonMemRegion(a, s)   ((U0)(a), (U0)(s))
+#       define AsanUnpoisonMemRegion(a, s) ((U0)(a), (U0)(s))
 #endif         /* DBG_PoisonMemRegion && DBG_UnpoisonMemRegion */
 
 /**........................................................
 // Thread Sanitizer utilities                            */
+
+#if CLANG_COMPILER
+#  if defined(__has_feature)
+#    if __has_feature(thread_sanitizer)
+#       define TSAN_ENABLED 1
+#    endif     /* __has_feature(thread_sanitizer) */
+#  elif defined(__SANITIZE_THREAD__)
+#       define TSAN_ENABLED 1
+#  endif       /* defined(__has_feature) */
+#endif         /* TSAN_ENABLED */
+
+#if DEBUG && TSAN_ENABLED
+#endif
 
 /**........................................................
 // Poisoned pointers and unmmappable memory markers      */

@@ -87,7 +87,7 @@
 #       define HintAssert(c) while (Unlikely(!(c))) __builtin_unreachable()
 #  elif MSVC_COMPILER
 #       define HintAssert(c) while (Unlikely(!(c))) __assume(0)
-#  else        /* !(GNU_COMPILER || CLANG_COMPILER) && MSVC_COMPLIER */
+#  else        /* !(GNU_COMPILER || CLANG_COMPILER || MSVC_COMPLIER) */
 #       define HintAssert(c) ((U0)(c))
 #  endif       /*  GNU_COMPILER || CLANG_COMPILER */
 #else          /* !HINT_ASSERT */
@@ -111,6 +111,18 @@
 #       define DEBUG 0
 #endif         /* !DEBUG */
 
+#if DEBUG
+#  if ARCH_X64
+#       define DebugBreak() asm("int3")
+#  elif ARCH_ARM64
+#       define DebugBreak() asm("brk\t#0x666")
+#  elif GNU_COMPILER || CLANG_COMPILER
+#       define DebugBreak() __builtin_trap()
+#  endif       /* ARCH_X64 || ARCH_ARM64 || GNU_COMPILER || CLANG_COMPILER */
+#else          /* !DEBUG */
+#       define DebugBreak() ((U0)0)
+#endif         /* DebugBreak() */
+
 /**........................................................
 // Address Sanitizer wrappers                            */
 
@@ -133,7 +145,7 @@
 #endif         /* DBG_PoisonMemRegion && DBG_UnpoisonMemRegion */
 
 /**........................................................
-// Thread Sanitizer utilities                            */
+// Thread Sanitizer wrappers                             */
 
 #if CLANG_COMPILER
 #  if defined(__has_feature)
@@ -144,9 +156,6 @@
 #       define TSAN_ENABLED 1
 #  endif       /* defined(__has_feature) */
 #endif         /* TSAN_ENABLED */
-
-#if DEBUG && TSAN_ENABLED
-#endif
 
 /**........................................................
 // Poisoned pointers and unmmappable memory markers      */
@@ -168,4 +177,3 @@
 /* base_list.h && base_list.c */
 #define LISTNODE_POISON_PREVPTR 0xDEAD0001
 #define LISTNODE_POISON_NEXTPTR 0xDEAD0002
-

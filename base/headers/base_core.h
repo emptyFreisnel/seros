@@ -1,14 +1,19 @@
 /**........................................................
 // C core utilities.                                     */
 
+/* [raddebugger]                            */
+/* https://github.com/EpicGames/raddebugger */
+ 
+
 #ifndef SEROS_BASE_CORE
 #define SEROS_BASE_CORE
 
 /**........................................................
 // Freestanding/standalone header includes.              */
 
-#include <stdarg.h>  /* For va_args/va_list */
+#include <stdarg.h>  /* For va_args/va_list              */
 #include <stdint.h>  /* For fixed width types eg int32_t */
+#include <stddef.h>  /* For size_t and ptrdiff_t         */
 
 /**........................................................
 // Compiler versioning delegation.                       */
@@ -216,11 +221,13 @@ typedef uint16_t  U16;
 typedef uint32_t  U32;
 typedef uint64_t  U64;
 typedef uintptr_t Uptr;
+typedef size_t    Usize;
 typedef int8_t    I8;
 typedef int16_t   I16;
 typedef int32_t   I32;
 typedef int64_t   I64;
 typedef intptr_t  Iptr;
+typedef ptrdiff_t Isize;
 typedef U8        B8;
 typedef U16       B16;
 typedef U32       B32;
@@ -290,10 +297,9 @@ union U256 {
 #       define AlignType(x) CompilerExt(align(x))
 #endif        /*  AlignType */
 
-/* Note that the #else branch implementation of offsetof fails UBSAN;
- * instead use __builtin_offsetof() available since GCC 4 and Clang 4.
- * [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html
- */
+/* Note that the #else branch implementation of offsetof fails UBSAN;    */
+/* instead use __builtin_offsetof() available since GCC 4 and Clang 4.   */
+/* [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html */
 
 #undef offsetof
 #if GNU_COMPILER || CLANG_COMPILER
@@ -312,6 +318,7 @@ union U256 {
 
 #define asm __asm__
 #define volatile __volatile__
+#define restrict __restrict__
 
 /**........................................................
 // Branch prediction macros                              */
@@ -354,14 +361,13 @@ union U256 {
 #       define CastFromMember(T, m, ptr) (T*) ((I8*) (ptr)-OffsetOf(T,m))
 #endif         /* CastFromMember */
 
-/**..........................................................................
-//  Min, Max, Clamp and Swap Functions
+/**........................................................
+//  Min, Max, Clamp and Swap Functions                   */
 
-*  The Max, Min, Clamp and Swap functions are generated using X-macros.
-*  Assume additional stack traffic when using these in debug builds.
-*  Your average optimizing compiler can inline this during release.
-*  See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.
-*/
+/* The Max, Min, Clamp and Swap functions are generated using X-macros. */
+/* Assume additional stack traffic when using these in debug builds.    */
+/* Your average optimizing compiler can inline this during release.     */
+/* See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.       */
 
 #define MakeMaxFn(T)   static inline T max##T(T x, T y) { return (x > y) ? x : y; }
 #define MakeMinFn(T)   static inline T min##T(T x, T y) { return (x < y) ? x : y; }

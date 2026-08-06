@@ -1,9 +1,8 @@
+
 /**........................................................
 // C core utilities.                                     */
 
-/* [raddebugger]                            */
-/* https://github.com/EpicGames/raddebugger */
- 
+/* [raddbgger] https://github.com/EpicGames/raddebugger  */
 
 #ifndef SEROS_BASE_CORE
 #define SEROS_BASE_CORE
@@ -24,9 +23,29 @@
 #       define GNU_COMPILER   1
 #elif defined(_MSC_VER)
 #       define MSVC_COMPILER  1
-#else 
-#       warning "seros: Unrecognised compiler."
 #endif  /* CLANG_COMPILER, GNU_COMPILER, MSVC_COMPILER */
+
+#if !defined(CLANG_COMPILER)
+#       define CLANG_COMPILER 0
+#elif !defined(GNU_COMPILER)
+#       define GNU_COMPILER 0
+#elif !defined(MSVC_COMPILER)
+#       define GNU_COMPILER 0
+#else
+#       warning "seros: Unrecognised compiler."
+#endif
+
+#if GNU_COMPILER || CLANG_COMPLIER
+#       define HAS_COMPILER_BUILTINS 1
+#elif MSVC_COMPILER
+#       define HAS_MSVC_INTRINSICS 1
+#endif
+
+#if !defined(HAS_COMPILER_BUILTINS)
+#       define HAS_COMPILER_BUILTINS 0
+#elif !defined(MSVC_COMPILER)
+#       define HAS_MSVC_INTRINSICS 1
+#endif
 
 #ifdef __STDC__
 #  ifndef __STDC_VERSION__
@@ -148,10 +167,10 @@
 #endif
 #if !defined(ARCH_64BIT)
 #       define ARCH_64BIT 0
-#endif
+#endif         /* !defined(ARCH_64BIT) */
 #if !defined(ARCH_32BIT)
 #       define ARCH_32BIT 0
-#endif
+#endif         /* !defined(ARCH_32BIT) */
 
 /**........................................................
 // OS architecture delegation.                           */
@@ -210,7 +229,7 @@
 
 #if !(OS_WINDOWS || OS_MAC || OS_LINUX || OS_FREEBSD || OS_OPENBSD || OS_NETBSD)
 #       error "seros: Unrecognised operating system / kernel environment."
-#endif
+#endif        /* !(OS_WINDOWS || OS_MAC || OS_LINUX || OS_FREEBSD || OS_OPENBSD || OS_NETBSD)  */
 
 /**........................................................
 // Base types                                            */
@@ -291,12 +310,6 @@ union U256 {
 #       define AlignOf(t) _Alignof(t)
 #endif         /* TypeOf, AlignOf  */
 
-#if GNU_COMPILER || CLANG_COMPILER
-#       define AlignType(x) CompilerExt(aligned(x))
-#elif MSVC_COMPILER
-#       define AlignType(x) CompilerExt(align(x))
-#endif        /*  AlignType */
-
 /* Note that the #else branch implementation of offsetof fails UBSAN;    */
 /* instead use __builtin_offsetof() available since GCC 4 and Clang 4.   */
 /* [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html */
@@ -319,6 +332,21 @@ union U256 {
 #define asm __asm__
 #define volatile __volatile__
 #define restrict __restrict__
+
+/**........................................................
+// Common compiler attribute defines                     */
+
+#if GNU_COMPILER || CLANG_COMPLIER
+#       define WeakReference(p, a) p CompilerExt(weak, alias(#a))
+#else
+#       define WeakReference(p, a) ((U0)(p), (U0)(a))
+#endif         /* WeakReference */
+
+#if GNU_COMPILER || CLANG_COMPILER
+#       define AlignType(x) CompilerExt(aligned(x))
+#elif MSVC_COMPILER
+#       define AlignType(x) CompilerExt(align(x))
+#endif        /*  AlignType */
 
 /**........................................................
 // Branch prediction macros                              */
@@ -364,14 +392,14 @@ union U256 {
 /**........................................................
 //  Min, Max, Clamp and Swap Functions                   */
 
-/* The Max, Min, Clamp and Swap functions are generated using X-macros. */
-/* Assume additional stack traffic when using these in debug builds.    */
-/* Your average optimizing compiler can inline this during release.     */
-/* See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.       */
+/* The Max, Min, Clamp and Swap functions are generated using X-macros. Assume stack    */
+/* traffic when using these in debug builds. The compiler can optimize out and inline   */
+/* this during release.                                                                 */
+/* See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.                       */
 
 #define MakeMaxFn(T)   static inline T max##T(T x, T y) { return (x > y) ? x : y; }
 #define MakeMinFn(T)   static inline T min##T(T x, T y) { return (x < y) ? x : y; }
-#define MakeSwapFn(T)  static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }         
+#define MakeSwapFn(T)  static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }
 #define MakeClampFn(T) static inline T clamp##T(T v, T min, T max) { if (v < min) return min;    \
                                                                      if (v > max) return max;    \
                                                                      return v; }
@@ -385,4 +413,98 @@ XMacroNumTypes(MakeClampFn)
 #undef MakeSwapFn
 #undef MakeClampFn
 
+/**........................................................
+// Memfunctions                                          */
+
+/* memfunctions live in core and not base_string.h which differs from the C Standard    */
+/* bundling them in <string.h>. Cstrings and raw byte buffers are both just contiguous  */
+/* memory, and the memfunctions operate on them both. Whether the grouping made sense   */
+/* is left as an exercise for the reader (the author has no metric but subjectively     */
+/* believes it to be so) but the thought behind is that the compilers (GNU/Clang)       */
+/* expects these definitions regardless as it recognises patterns that replaces loops   */
+/* to generated memfunc calls for speed. The flags -fno-builtin and -ffreestanding does */
+/* not matter here as seros calls the __builtin functions directly, meaning that the    */
+/* complier will consistently insert memfunc calls and expect a reference to them,      */
+/* either from linking with libc or your own supplied definitions.                      */
+/* [Cosmopolitan]                                                                       */
+/* [Musl] https://git.musl-libc.org/cgit/musl/tree/src/string/memcpy.c                  */
+
+/* dst and src may overlap */
+
+U0 *
+memmove(U0 *restrict dst, const U0 *restrict src, Usize n)
+{
+        U8 *d = (U8*) dst;
+        const U8 *s = (U8*) src;
+
+        if (n == 0)
+                return (U0*) d;
+        if (n == 1) {
+                *d = *s;
+                return (U0*) d;
+        }
+
+        #if ARCH_X64 && HAS_COMPILER_BUILTINS
+
+                U16 frntw, backw;
+                U32 frntl, backl;
+                U64 frntq, backq;
+
+                if (n <= 16 && !(n <= 1)) {
+                        if (n >= 8) {
+                                __builtin_memcpy(&frntq, s, 8);
+                                __builtin_memcpy(&backq, s+n-8, 8);
+                                __builtin_memcpy(d, &frntq, 8);
+                                __builtin_memcpy(d+n-8, &backq, 8);
+                        } else if (n >= 4) {                        /* eg: s is pointing to [0 1 2 3 4 5], n=6  */
+                                __builtin_memcpy(&frntl, s, 4);     /* [0 1 2 3], cpy 4bs to frntl              */
+                                __builtin_memcpy(&backl, s+n-4, 4); /* [    2 3 4 5], s+n-4=2, cpy 4bs to backl */
+                                __builtin_memcpy(d, &frntl, 4);     /* [0 1 2 3], cpy 4bs frm frntl to d        */
+                                __builtin_memcpy(d+n-4, &backl, 4); /* [0 1 2 3 4 5], d+n-4=2, cpy 4bs frm backl to d pointing at 2 */
+                        } else if (n >= 2) {
+                                __builtin_memcpy(&frntw, s, 2);
+                                __builtin_memcpy(&frntw, s, 2);
+                                __builtin_memcpy(&frntw, s, 2);
+                                __builtin_memcpy(&frntw, s, 2);
+                        } else {
+                                for (; n; n--) *d++ = *s++;
+                        }
+                }
+
+        #else /* TODO: ARCH_ARM64 */
+                for (; n; n--) *d++ = *s++;
+        #endif
+                return dst;
+}
+
+U0 *
+memset(U0 *restrict s, I32 c, Usize n)
+{
+        U8 *d = (U8*)s;
+
+        if (len >= 4 && len <= 7) {
+
+        } else {
+                for (; n; n--) *d++ = (I8)c;
+        }
+        return s;
+}
+
+I32
+memcmp(U0 s1, const U0 s2, Usize n)
+{
+}
+
+// thin dispatcher
+static inline U0 *
+mset(U0 *restrict s, I32 c, Usize n)
+{
+        return memset(s, c, n);
+}
+
+static inline U0 *
+mmove(U0 dst, const U0 src, Usize n)
+{
+        return memmove(dst, src, n);
+}
 #endif /* SEROS_BASE_CORE */

@@ -1,6 +1,10 @@
 
 /**........................................................
-// C core utilities.                                     */
+// C core types and fundamental function definitions     */
+
+/* Key defines and core function stubs for programs to   */
+/* compile in an environment without any need or hard    */
+/* dependency for the C standard library.                */
 
 /* [raddbgger] https://github.com/EpicGames/raddebugger  */
 
@@ -59,7 +63,7 @@
 #       define GNU_COMPILER   0
 #endif         /* !defined(GNU_COMPILER)   */
 #if !defined(MSVC_COMPILER)
-#       define GNU_COMPILER   0
+#       define MSVC_COMPILER   0
 #endif         /* !defined(MSVC_COMPILER)  */
 
 #if GNU_COMPILER || CLANG_COMPILER
@@ -67,7 +71,7 @@
 #       define HAS_ATTRIBUTES 1
 #elif MSVC_COMPILER
 #       define HAS_MSVC_INTRINSICS 1
-#endif         /* HAS_BUILTINS, HAS_MSVC_INTRINSICS */
+#endif         /* HAS_BUILTINS, HAS_ATTRIBUTES, HAS_MSVC_INTRINSICS */
 
 #if !defined(HAS_BUILTINS)
 #       define HAS_BUILTINS   0
@@ -75,7 +79,7 @@
 #if !defined(HAS_ATTRIBUTES)
 #       define HAS_ATTRIBUTES 0
 #endif         /* !defined(HAS_ATTRIBUTES) */
-#if !defined(MSVC_COMPILER)
+#if !defined(HAS_MSVC_INTRINSICS)
 #       define HAS_MSVC_INTRINSICS 0
 #endif         /* !defined(HAS_MSVC_INTRINSICS) */
 
@@ -156,7 +160,7 @@
 #endif
 
 /**........................................................
-// Pointer width.                                        */
+// Pointer width and SIMD availability.                  */
 
 #if ARCH_X64
 #       define ARCH_64BIT 1
@@ -275,9 +279,9 @@
 /* [Source] https://lkml.iu.edu/hypermail/linux/kernel/2604.0/01424.html */
 
 #undef offsetof
-#if GNU_COMPILER || CLANG_COMPILER
+#if HAS_BUILTINS
 #       define OffsetOf(T, m) __builtin_offsetof(T, m)
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
+#else          /* !HAS_BUILTINS */
 #       define OffsetOf(T, m) ((U64) &((T*)0)->m)
 #endif         /* OffsetOf */
 
@@ -338,11 +342,11 @@ typedef U64       B64;
 typedef float     F32;
 typedef double    F64;
 
-#if GNU_COMPILER || CLANG_COMPILER
+#if HAS_ATTRIBUTES
         /* Pack two 8bytes into a 16bytes register */
-        typedef U64 V128  CompilerExt(__vector_size__(16), __aligned__(1));
-        typedef U64 V128A CompilerExt(__vector_size__(16), __aligned__(16));
+        typedef U64 Bits128 CompilerExt(__vector_size__(16));
 #elif MSVC_COMPILER
+#       include <immintrin.h>
 #endif
 
 #define XMacroNumTypes(X) X(U16) X(U32) X(U64) X(I16) X(I32) X(I64) X(F32) X(F64)
@@ -381,67 +385,14 @@ union U256 {
 /**........................................................
 // Branch prediction macros                              */
 
-#if GNU_COMPILER || CLANG_COMPILER
+#if HAS_BUILTINS
 #       define Expect(e, v) __builtin_expect((e), (v))
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
+#else          /* !HAS_BUILTINS */
 #       define Expect(e, v) (e)
 #endif         /* Expect  */
 
 #define Likely(e)   Expect((e), 1)
 #define Unlikely(e) Expect((e), 0)
-
-/**........................................................
-// Length and count macros                               */
-
-#if GNU_COMPILER || CLANG_COMPILER
-#       define CountOf(x) ({                                                                     \
-               CompileAssert(!__builtin_types_compatible_p(TypeOf(x), TypeOf(&(x)[0])),          \
-                             "CountOf: argument must be a real array and not a pointer.");       \
-               (I32) (sizeof(x)/sizeof((x)[0]));                                                 \
-        })
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define CountOf(x) ((I32)(sizeof(x) / sizeof((x)[0])))
-#endif         /* CountOf */
-
-#define LengthOf(x) (CountOf(x)-1)
-
-/**........................................................
-// Struct member offset macros                           */
-
-#if GNU_COMPILER || CLANG_COMPILER
-#       define CastFromMember(T, m, ptr) ({                                                      \
-               CompileAssert(__builtin_types_compatible_p(TypeOf(ptr), TypeOf(&(((T*)0)->m))) || \
-                             __builtin_types_compatible_p(TypeOf(ptr), U0*),                     \
-                             "CastFromMember: ptr type does not match member type.");            \
-               (T*) ((I8*) (ptr)-OffsetOf(T,m));                                                 \
-        })
-#else          /* !(GNU_COMPILER || CLANG_COMPILER) */
-#       define CastFromMember(T, m, ptr) (T*) ((I8*) (ptr)-OffsetOf(T,m))
-#endif         /* CastFromMember */
-
-/**........................................................
-//  Min, Max, Clamp and Swap Functions                   */
-
-/* The Max, Min, Clamp and Swap functions are generated using X-macros. Assume stack    */
-/* traffic when using these in debug builds. The compiler can optimize out and inline   */
-/* this during release.                                                                 */
-/* See SEI Cert C Coding Standard (Edition 2016): page 26 and 27.                       */
-
-#define MakeMaxFn(T)   static inline T max##T(T x, T y) { return (x > y) ? x : y; }
-#define MakeMinFn(T)   static inline T min##T(T x, T y) { return (x < y) ? x : y; }
-#define MakeSwapFn(T)  static inline U0 swap##T(T *x, T*y) { T t = *x; *x = *y; *y = t; }
-#define MakeClampFn(T) static inline T clamp##T(T v, T min, T max) { if (v < min) return min;    \
-                                                                     if (v > max) return max;    \
-                                                                     return v; }
-XMacroNumTypes(MakeMaxFn)
-XMacroNumTypes(MakeMinFn)
-XMacroNumTypes(MakeSwapFn)
-XMacroNumTypes(MakeClampFn)
-
-#undef MakeMaxFn
-#undef MakeMinFn
-#undef MakeSwapFn
-#undef MakeClampFn
 
 /**........................................................
 // Memfunctions                                          */
@@ -454,93 +405,120 @@ XMacroNumTypes(MakeClampFn)
 /* consistently especially when the function calling it is inlined. So it is one of the  */
 /* reasons the functions are here instead.                                               */
 
+/* Implementation is largely derived from Cosmopolitan Libc.                             */
+
 /* [Cosmopolitan] https://github.com/jart/cosmopolitan/blob/master/libc/intrin/memmove.c */
 /* [Musl] https://git.musl-libc.org/cgit/musl/tree/src/string/memcpy.c                   */
 
-/* dst and src may overlap                                                               */
+
+/* memmove allows dst and src to overlap.                                      */
+/* This differs from memcpy which has restrict qualifiers preventing aliasing. */
 
 static U0 *
-memmove(U0 *restrict dst, const U0 *restrict src, Usize n)
+memmove(U0 *dst, const U0 *src, Usize n)
 {
         U8 *d = (U8*) dst;
-        const U8 *s = (U8*) src;
+        const U8 *s = (const U8*) src;
 
-        if (n == 0 || !n)
+        if (n == 0 || d == s)
                 return (U0*) d;
         if (n == 1) {
-                *d = *s;
+                d[0] = s[0];
                 return (U0*) d;
         }
-
+        
         #if ARCH_X64 && HAS_BUILTINS
 
                 U64 frntq, backq;
-
-                if (n <= 64 && n >= 33) {
-                        V128 v = *(V128*) s;
-                        V128 w = *(V128*) (s+16);
-                        V128 x = *(V128*) (s+n-32);
-                        V128 y = *(V128*) (s+n-16);
-                        *(V128*) d = v;
-                        *(V128*) (d+16) = w;
-                        *(V128*) (d+n-32) = x;
-                        *(V128*) (d+n-16) = y;
-                        return d;
-                }
-                if (n <= 32 && n >= 17) {
-                        V128 v = *(V128*) s;
-                        V128 w = *(V128*) (s+n-16);
-                        *(V128*) d = v;
-                        *(V128*) (d+16) = w;
-                        return d;
-                }
+                Bits128 v, w, x, y, V, W, X, Y;
+        
                 if (n <= 16) {
 
                         if (n == 16) {
-                                *(V128*) d = *(V128*) s;
-                                return d;
+                                __builtin_memcpy(&v, s, 16);
+                                __builtin_memcpy(d, &v, 16);
+                                return (U0*)d;
                         } else if (n <= 15 && n >= 9) {
                                 __builtin_memcpy(&frntq, s, 8);
                                 __builtin_memcpy(&backq, s+n-8, 8);
                                 __builtin_memcpy(d, &frntq, 8);
                                 __builtin_memcpy(d+n-8, &backq, 8);
-                                return d;
+                                return (U0*)d;
                         } else if (n == 8) {
                                 __builtin_memcpy(&frntq, s, 8);
                                 __builtin_memcpy(d, &frntq, 8);
-                                return d;
+                                return (U0*)d;
                         } else if (n <= 7 && n >= 5) {
                                 __builtin_memcpy(&frntq, s, 4);
                                 __builtin_memcpy(&backq, s+n-4, 4);
                                 __builtin_memcpy(d, &frntq, 4);
                                 __builtin_memcpy(d+n-4, &backq, 4);
-                                return d;
+                                return (U0*)d;
                         } else if (n == 4) {
                                 __builtin_memcpy(&frntq, s, 4);
                                 __builtin_memcpy(d, &frntq, 4);
-                                return d;
+                                return (U0*)d;
                         } else if (n == 3) {
                                 __builtin_memcpy(&frntq, s, 2);   /* frntq:  0 1    */
                                 __builtin_memcpy(&backq, s+1, 2); /* backq:    1 2  */
                                 __builtin_memcpy(d, &frntq, 2);   /* d:      0 1    */
                                 __builtin_memcpy(d+1, &backq, 2); /* d+1:    0 1 2  */
-                                return d;
+                                return (U0*)d;
                         } else if (n == 2) {
                                 __builtin_memcpy(&frntq, s, 2);
                                 __builtin_memcpy(d, &frntq, 2);
-                                return d;
+                                return (U0*)d;
+                        } else {
+                                Assert(n > 2);
                         }
                 }
-
+                if (n >= 17 && n <= 32) {
+                        __builtin_memcpy(&v, s, 16);
+                        __builtin_memcpy(&w, s+n-16, 16);
+                        __builtin_memcpy(d, &v, 16);
+                        __builtin_memcpy(d+n-16, &w, 16);
+                        return (U0*)d;
+                }
+                if (n >= 33 && n <= 64) {
+                        __builtin_memcpy(&v, s, 16);
+                        __builtin_memcpy(&w, s+16, 16);
+                        __builtin_memcpy(&x, s+n-32, 16);
+                        __builtin_memcpy(&y, s+n-16, 16);
+                        __builtin_memcpy(d, &v, 16);
+                        __builtin_memcpy(d+16, &w, 16);
+                        __builtin_memcpy(d+n-32, &x, 16);
+                        __builtin_memcpy(d+n-16, &y, 16);
+                        return (U0*)d;
+                }
+                if (n >= 65 && n <= 127) {
+                        __builtin_memcpy(&v, s, 16);
+                        __builtin_memcpy(&w, s+16, 16);
+                        __builtin_memcpy(&x, s+32, 16);
+                        __builtin_memcpy(&y, s+48, 16);
+                        __builtin_memcpy(&V, s+n-64, 16);
+                        __builtin_memcpy(&W, s+n-48, 16);
+                        __builtin_memcpy(&X, s+n-32, 16);
+                        __builtin_memcpy(&Y, s+n-16, 16);
+                        __builtin_memcpy(d, &v, 16);
+                        __builtin_memcpy(d+16, &w, 16);
+                        __builtin_memcpy(d+32, &x, 16);
+                        __builtin_memcpy(d+48, &y, 16);
+                        __builtin_memcpy(d+n-64, &V, 16);
+                        __builtin_memcpy(d+n-48, &W, 16);
+                        __builtin_memcpy(d+n-32, &X, 16);
+                        __builtin_memcpy(d+n-16, &Y, 16);
+                        return (U0*)d;
+                }
+                if (n >= 128) {
+                        if (d < s) {
+                                
+                        }
+                }
+        
         #else /* TODO: ARCH_ARM64 */
-              if (d > s) {
-                      for (d += n; s += n; n--)
-                              *d-- = *s--;
-              } else {
-                      while (n--) *d++ = *s++;
-              }
+                      while (n--) d[n] = s[n];
         #endif
-                return dst;
+              return (U0*) dst;
 
 } WeakReference(memmove, memcpy);
 
@@ -558,16 +536,22 @@ memset(U0 *restrict s, I32 c, Usize n)
 }
 
 I32
-memcmp(const U0 s1, const U0 s2, Usize n)
+memcmp(const U0 *s1, const U0 *s2, Usize n)
 {
-        const U8 *p = (U8*) s1;
-        const U8 *q = (U8*) s2;
-        I32 c = *p - *q;
-
-        if (p == q || !n)
+        const U8 *p = (const U8*) s1;
+        const U8 *q = (const U8*) s2;
+        I32 c;
+        
+        if (n == 0 || p == q)
                 return 0;
-        else return c;
+        if ((c = *p - *q))
+                return c;
 
+        while (n--) {
+                if (())
+                        return c;
+        }
+        return 0;
 }
 
 #endif /* SEROS_BASE_CORE */

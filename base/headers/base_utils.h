@@ -1,15 +1,15 @@
 /**........................................................
 // C base utility functions and macros.                  */
 
-#ifndef SEROS_BASE_CORE
-#define SEROS_BASE_CORE
+#ifndef SEROS_BASE_UTILS
+#define SEROS_BASE_UTILS
 
 /**........................................................
 // Length and count macros                               */
 
 #if HAS_BUILTINS
-#       define CountOf(x) ({                                                                     \
-               CompileAssert(!__builtin_types_compatible_p(TypeOf(x), TypeOf(&(x)[0])),          \
+#       define CountOf(x)                                                                        \
+        ({     CompileAssert(!__builtin_types_compatible_p(TypeOf(x), TypeOf(&(x)[0])),          \
                              "CountOf: argument must be a real array and not a pointer.");       \
                (I32) (sizeof(x)/sizeof((x)[0]));                                                 \
         })
@@ -23,8 +23,8 @@
 // Struct member offset macros                           */
 
 #if HAS_BUILTINS
-#       define CastFromMember(T, m, ptr) ({                                                      \
-               CompileAssert(__builtin_types_compatible_p(TypeOf(ptr), TypeOf(&(((T*)0)->m))) || \
+#       define CastFromMember(T, m, ptr)                                                         \
+        ({     CompileAssert(__builtin_types_compatible_p(TypeOf(ptr), TypeOf(&(((T*)0)->m))) || \
                              __builtin_types_compatible_p(TypeOf(ptr), U0*),                     \
                              "CastFromMember: ptr type does not match member type.");            \
                (T*) ((I8*) (ptr)-OffsetOf(T,m));                                                 \
@@ -56,3 +56,5 @@ XMacroNumTypes(MakeClampFn)
 #undef MakeMinFn
 #undef MakeSwapFn
 #undef MakeClampFn
+
+#endif /* SEROS_BASE_UTILS */

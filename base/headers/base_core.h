@@ -354,6 +354,9 @@
 #       define always_inline inline CompilerExt(__always_inline__)
 #       define noinline CompilerExt(__noinline__)
 #elif MSVC_COMPILER
+#else 
+#       define always_inline inline
+#       define noinline
 #endif         /* always_inline, noinline */
 
 /**........................................................
@@ -465,9 +468,9 @@ union u256 {
 #define U64MAXLEN 20 /* " 18,446,744,073,709,551,615" */
 
 #define F32INFINITY_BITS     0x7f800000
-#define F64INFINITY_BITS     0x7f80000000000000ULL
+#define F64INFINITY_BITS     0x7ff0000000000000ULL
 #define NEG_F32INFINITY_BITS 0xff800000
-#define NEG_F64INFINITY_BITS 0xff80000000000000ULL
+#define NEG_F64INFINITY_BITS 0xfff0000000000000ULL
 
 #if COMPILER_HAS_BUILTINS
 #       define F32INFINITY     __builtin_inff(u0)
@@ -475,8 +478,8 @@ union u256 {
 #       define NEG_F32INFINITY (-F32INFINITY)
 #       define NEG_F64INFINITY (-F64INFINITY)
 #else
-#       define F32INFINITY ((f32) (1e300)*(1e300))
-#       define F64INFINITY ((f64) (1e300)*(1e300))
+#       define F32INFINITY ((f32) (1e300*1e300))
+#       define F64INFINITY ((f64) (1e300*1e300))
 #       define NEG_F32INFINITY (-F32INFINITY)
 #       define NEG_F64INFINITY (-F64INFINITY)
 #endif

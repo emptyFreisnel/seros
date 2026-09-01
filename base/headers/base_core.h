@@ -22,6 +22,64 @@
 #include <stdint.h>  /* For fixed width types eg int32_t */
 #include <stddef.h>  /* For size_t and ptrdiff_t         */
 
+#if !defined(SEROS_FREESTANDING)
+#       define SEROS_FREESTANDING 0
+#       define SEROS_HAS_CRT      1
+#endif         /* SEROS_FREESTANDING 0, SEROS_HAS_CRT 1  */
+
+#if !defined(SEROS_FREESTANDING)
+#       define SEROS_FREESTANDING 0
+#endif         /* !defined(SEROS_FREESTANDING) */
+#if !defined(SEROS_HAS_CRT)
+#       define SEROS_HAS_CRT (!SEROS_FREESTANDING)
+#endif         /* !defined(SEROS_HAS_CRT) */
+
+/**........................................................
+// Codebase keywords and API function specifiers.        */
+
+#define UTAPI static                  /* base_utils.h    */
+#define STAPI static                  /* base_stringio.h */
+#define INAPI static                  /* base_intrin.h   */
+
+#undef internal
+#define internal        static
+#define internal_helper static
+
+#define asm __asm__
+#define volatile __volatile__
+#define restrict __restrict__
+
+#undef NULL
+#if STD_C23
+#       define NULL nullptr
+        typedef TypeOf(NULL) /* nullptr_t */ nptr;
+#else          /* !STD_C23 */
+#       define NULL ((u0*)0)
+#endif         /* NULL */
+
+/**........................................................
+// Linkage Keyword macros                                */
+
+#if defined(__cplusplus)
+#       define LANG_CPP 1
+#else          /* !__cplusplus */
+#       define LANG_C   1
+#endif         /*  __cplusplus */
+
+#if !defined(__cplusplus)
+#       define LANG_CPP 0
+#endif
+
+#if LANG_CPP
+#       define C_LINKAGE_BEGIN extern "C" {
+#       define C_LINKAGE_END }
+#       define C_LINKAGE extern "C"
+#else
+#       define C_LINKAGE_BEGIN
+#       define C_LINKAGE_END
+#       define C_LINKAGE
+#endif
+
 /**........................................................
 // C standard delegation.                                */
 
@@ -184,11 +242,18 @@
 #       define ARCH_32BIT 1
 #endif         /* ARCH_64BIT, ARCH_32BIT */
 
-#if ARCH_X64 && defined(__AVX2__)
+#if ARCH_X64
+#  if defined(__SSE__)
+#       define SIMD_SSE  1
+#  endif       /* __SSE__ */
+#  if defined(__AVX2__)
 #       define SIMD_AVX2 1
-#elif ARCH_ARM64 && defined(__SVE__)
+#  endif       /* __AVX2__ */
+#endif         /* SIMD_SSE, SIMD_AVX2 */
+
+#if ARCH_ARM64 && defined(__SVE__)
 #       define SIMD_SVE  1
-#endif         /* SIMD_AVX2, SIMD_SVE */
+#endif         /*  SIMD_SVE */
 
 #if !defined(ARCH_64BIT)
 #       define ARCH_64BIT 0
@@ -197,11 +262,15 @@
 #       define ARCH_32BIT 0
 #endif         /* !defined(ARCH_32BIT) */
 
+#if !defined(SIMD_SSE)
+#       define SIMD_SSE  0
+#endif         /* !defined(SIMD_SSE)  */
 #if !defined(SIMD_AVX2)
 #       define SIMD_AVX2 0
-#elif !defined(SIMD_SVE)
+#endif         /* !defined(SIMD_AVX2) */
+#if !defined(SIMD_SVE)
 #       define SIMD_SVE  0
-#endif        /* !defined(SIMD_AVX2), !defined(SIMD_SVE) */
+#endif         /* !defined(SIMD_SVE)  */
 
 #if !(ARCH_64BIT || ARCH_32BIT)
 #       error "seros: Unrecognised architecture"
@@ -219,9 +288,11 @@
 #elif defined(__NT__)
 #       define OS_WINDOWS 1
 #endif         /* OS_WINDOWS */
+
 #if defined(__APPLE__) && defined(__MACH__)
 #       define OS_MAC     1
 #endif         /* OS_MAC     */
+
 #if defined(__linux__)
 #       define OS_LINUX   1
 #elif defined(__linux)
@@ -229,14 +300,17 @@
 #elif defined(__gnu_linux__)
 #       define OS_LINUX   1
 #endif         /* OS_LINUX   */
+
 #if defined(__FreeBSD__)
 #       define OS_FREEBSD 1
 #elif defined(__FreeBSD_kernel__)
 #       define OS_FREEBSD 1
 #endif         /* OS_FREEBSD */
+
 #if defined(__OpenBSD__)
 #       define OS_OPENBSD 1
 #endif         /* OS_OPENBSD */
+
 #if defined(__NetBSD__)
 #       define OS_NETBSD  1
 #elif defined(__NetBSD_Version__)
@@ -267,30 +341,57 @@
 #endif        /* !(OS_WINDOWS || OS_MAC || OS_LINUX || OS_FREEBSD || OS_OPENBSD || OS_NETBSD)  */
 
 /**........................................................
-// Linkage Keyword macros                                */
+// Base types                                            */
 
-#if defined(__cplusplus)
-#       define LANG_CPP 1
-#else
-#       define LANG_C   1
-#endif
+/* All the types here are named to bit-widths lengths.   */
 
-#if !defined(__cplusplus)
-#       define LANG_CPP 0
-#endif
+typedef void      u0;
+typedef uint8_t   u8;
+typedef uint16_t  u16;
+typedef uint32_t  u32;
+typedef uint64_t  u64;
+typedef uintptr_t uptr;
+typedef size_t    usize;
+typedef int8_t    i8;
+typedef int16_t   i16;
+typedef int32_t   i32;
+typedef int64_t   i64;
+typedef intptr_t  iptr;
+typedef ptrdiff_t isize;
+typedef u8        b8;
+typedef u16       b16;
+typedef u32       b32;
+typedef u64       b64;
+typedef float     f32;
+typedef double    f64;
 
-#if LANG_CPP
-#       define C_LINKAGE_BEGIN extern "C" {
-#       define C_LINKAGE_END }
-#       define C_LINKAGE extern "C"
-#else
-#       define C_LINKAGE_BEGIN
-#       define C_LINKAGE_END
-#       define C_LINKAGE
-#endif
+#define XMacroNumTypes(X) X(u16) X(u32) X(u64) X(i16) X(i32) X(i64) X(f32) X(f64)
+
+typedef u0 Proc(u0);
+
+typedef union u128 u128;
+union u128 {
+	u8  _u8[16];
+	u16 _u16[8];
+	u32 _u32[4];
+	u64 _u64[2];
+        f32 _f32[4];
+        f64 _f64[2];
+};
+
+typedef union u256 u256;
+union u256 {
+	u8    _u8[32];
+	u16   _u16[16];
+	u32   _u32[8];
+	u64   _u64[4];
+        u128 _u128[2];
+        f32   _f32[8];
+        f64   _f64[4];
+};
 
 /**........................................................
-// Keyword and compiler attribute wrappers               */
+// Compiler attribute wrappers                           */
 
 #if COMPILER_HAS_ATTRIBUTES
 #       define CompilerExt(...) __attribute__((__VA_ARGS__))
@@ -313,17 +414,13 @@
 #       define AlignOf(t) _Alignof(t)
 #endif         /* TypeOf, AlignOf  */
 
-#undef NULL
-#if STD_C23
-#       define NULL nullptr
-        typedef TypeOf(NULL) /* nullptr_t */ nptr;
-#else          /* !STD_C23 */
-#       define NULL ((u0*)0)
-#endif         /* NULL */
-
-#define asm __asm__
-#define volatile __volatile__
-#define restrict __restrict__
+#if STD_C11
+#       define Generic(...) _Generic(__VA_ARGS__)
+#elif COMPILER_HAS_BUILTINS // from freebsd cdefs.h - todo
+#       define Generic(...) __builtin_choose_expr(__builtin_types_compatible_p(TypeOf(((u0)0, (__VA_ARGS__))), t), yes, no)
+#else          /* !STD_C11 vs !COMPILER_HAS_BUILTINS */
+#       define Generic(...) ((u0)0)
+#endif         /* Generic */
 
 /**........................................................
 // Common compiler attribute defines                     */
@@ -392,85 +489,36 @@
 #endif         /* Expect  */
 
 /**........................................................
-// Base types                                            */
-
-/* All the types here are named to bit-widths lengths.   */
-
-typedef void      u0;
-typedef uint8_t   u8;
-typedef uint16_t  u16;
-typedef uint32_t  u32;
-typedef uint64_t  u64;
-typedef uintptr_t uptr;
-typedef size_t    usize;
-typedef int8_t    i8;
-typedef int16_t   i16;
-typedef int32_t   i32;
-typedef int64_t   i64;
-typedef intptr_t  iptr;
-typedef ptrdiff_t isize;
-typedef u8        b8;
-typedef u16       b16;
-typedef u32       b32;
-typedef u64       b64;
-typedef float     f32;
-typedef double    f64;
-
-#define XMacroNumTypes(X) X(u16) X(u32) X(u64) X(i16) X(i32) X(i64) X(f32) X(f64)
-
-typedef u0 Proc(u0);
-
-typedef union u128 u128;
-union u128 {
-	u8  _u8[16];
-	u16 _u16[8];
-	u32 _u32[4];
-	u64 _u64[2];
-        f32 _f32[4];
-        f64 _f64[2];
-};
-
-typedef union u256 u256;
-union u256 {
-	u8    _u8[32];
-	u16   _u16[16];
-	u32   _u32[8];
-	u64   _u64[4];
-        u128 _u128[2];
-        f32   _f32[8];
-        f64   _f64[4];
-};
-
-/**........................................................
 // Basic constants                                       */
 
-#define I8FLOOR  0x80
-#define I16FLOOR 0x8000
-#define I32FLOOR 0x80000000
-#define I64FLOOR 0x8000000000000000ULL
+#define I8FLOOR  (i8) 0x80
+#define I16FLOOR (i16) 0x8000
+#define I32FLOOR (i32) 0x80000000
+#define I64FLOOR (i64) 0x8000000000000000ull
 
-#define I8CEIL  0x7f
-#define I16CEIL 0x7fff
-#define I32CEIL 0x7fffffff
-#define I64CEIL 0x7fffffffffffffffULL
+#define I8CEIL  (i8) 0x7f
+#define I16CEIL (i16) 0x7fff
+#define I32CEIL (i32) 0x7fffffff
+#define I64CEIL (i64) 0x7fffffffffffffffull
 
-#define U8CEIL  0xff
-#define U16CEIL 0xffff
-#define U32CEIL 0xffffffff
-#define U64CEIL 0xffffffffffffffffULL
+#define U8CEIL  0xffu
+#define U16CEIL 0xffffu
+#define U32CEIL 0xffffffffu
+#define U64CEIL 0xffffffffffffffffull
 
-#define F32MACHEPS 1.1920929e-7F
+#define F32MACHEPS 1.1920929e-7f
 #define F64MACHEPS 2.2204460492503131e-16
 
-#define I32MAXLEN 11 /* "-2,147,483,648" */
+/* Commas are not included in the length */
+#define I32MAXLEN 11 /* "-2,147,483,648" */ 
 #define U32MAXLEN 10 /* " 4,294,967,295" */
 #define I64MAXLEN 20 /* "-9,223,372,036,854,775,808"  */
 #define U64MAXLEN 20 /* " 18,446,744,073,709,551,615" */
 
 #define F32INFINITY_BITS     0x7f800000
-#define F64INFINITY_BITS     0x7ff0000000000000ULL
+#define F64INFINITY_BITS     0x7ff0000000000000ull
 #define NEG_F32INFINITY_BITS 0xff800000
-#define NEG_F64INFINITY_BITS 0xfff0000000000000ULL
+#define NEG_F64INFINITY_BITS 0xfff0000000000000ull
 
 #if COMPILER_HAS_BUILTINS
 #       define F32INFINITY     __builtin_inff(u0)
@@ -493,5 +541,3 @@ union u256 {
 #define TB(n) (((u64)(n))<<40)
 
 #endif /* SEROS_BASE_CORE */
-
-
